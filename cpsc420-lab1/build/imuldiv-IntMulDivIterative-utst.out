@@ -1,0 +1,16 @@
+VCD info: dumpfile imuldiv-IntMulDivIterative.vcd opened for output.
+
+ Entering Test Suite: imuldiv-IntMulDivIterative
+  + Running Test Case: mul
+     [ FAILED ] Test ( vc-TestSink ) failed, [ ffffffffffffffff != 0000000000000001 ]
+     [ FAILED ] Test ( vc-TestSink ) failed, [ ffffffffffffffff != 0000000000000001 ]
+     [ FAILED ] Test ( vc-TestSink ) failed, [ ffffffffffffffc0 != 0000000000000040 ]
+     [ FAILED ] Test ( vc-TestSink ) failed, [ fdeadbeef0000000 != 0215241110000000 ]
+     [ passed ] Test ( Is sink finished? ) succeeded 
+  + Running Test Case: div/rem
+     [ passed ] Test ( Is sink finished? ) succeeded 
+  + Running Test Case: mixed
+     [ FAILED ] Test ( vc-TestSink ) failed, [ ffffffffffffffc0 != 0000000000000040 ]
+     [ FAILED ] Test ( vc-TestSink ) failed, [ fdeadbeef0000000 != 0215241110000000 ]
+     [ passed ] Test ( Is sink finished? ) succeeded 
+
