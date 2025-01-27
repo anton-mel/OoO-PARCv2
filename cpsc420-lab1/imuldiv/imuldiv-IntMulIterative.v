@@ -32,6 +32,8 @@ module imuldiv_IntMulIterative
   wire sign_en;
   wire sign;
 
+  wire [31:0] b_reg;
+
   imuldiv_IntMulIterativeDpath dpath
   (
     .clk                (clk),
@@ -49,7 +51,9 @@ module imuldiv_IntMulIterative
 
     .result_en          (result_en),
     .sign_en            (sign_en),
-    .sign               (sign)
+    .sign               (sign),
+
+    .b_reg              (b_reg)
   );
 
   imuldiv_IntMulIterativeCtrl ctrl
@@ -70,7 +74,9 @@ module imuldiv_IntMulIterative
     .add_mux_sel        (add_mux_sel),
     .result_en          (result_en),
     .sign_en            (sign_en),
-    .sign               (sign)
+    .sign               (sign),
+
+    .b_reg              (b_reg)
   );
 
 endmodule
@@ -96,7 +102,9 @@ module imuldiv_IntMulIterativeDpath
   input         add_mux_sel,
   input         result_en,
   input         sign_en,
-  output reg    sign
+  output reg    sign,
+
+  output [31:0] b_reg
 );
 
   //----------------------------------------------------------------------
@@ -160,7 +168,7 @@ module imuldiv_IntMulIterativeDpath
     if (reset) begin
       result_reg <= 64'b0;
     end else if (result_en) begin
-      result_reg <= (b_reg[0]) ? result_reg + a_reg : result_reg;
+      result_reg <= result_mux;
     end else begin
       result_reg <= 64'b0;
     end
@@ -182,9 +190,12 @@ module imuldiv_IntMulIterativeDpath
       sign <= 1'b0;
       sign_reg <= 64'b0;
     end else begin
-      if (sign_en) begin
+      if (sign_en && is_result_signed) begin
         sign <= is_result_signed;
         sign_reg <= (~result_reg + 1'b1);
+      end else begin
+        sign <= 1'b0;
+        sign_reg <= 64'b0;
       end
     end
   end
@@ -203,19 +214,21 @@ module imuldiv_IntMulIterativeCtrl
   input clk,
   input reset,
 
-  input      mulreq_val,
-  output reg mulreq_rdy,
-  output reg mulresp_val,
-  input      mulresp_rdy,
+  input         mulreq_val,
+  output reg    mulreq_rdy,
+  output reg    mulresp_val,
+  input         mulresp_rdy,
 
-  output reg a_mux_sel,
-  output reg b_mux_sel,
-  output reg result_mux_sel,
-  output reg add_mux_sel,
-  output reg sign_mux_sel,
-  output reg result_en,
-  output reg sign_en,
-  input      sign
+  output reg    a_mux_sel,
+  output reg    b_mux_sel,
+  output reg    result_mux_sel,
+  output reg    add_mux_sel,
+  output reg    sign_mux_sel,
+  output reg    result_en,
+  output reg    sign_en,
+  input         sign,
+
+  input [31:0]  b_reg
 );
 
   //--------------------------------------------------------------------
@@ -259,13 +272,13 @@ module imuldiv_IntMulIterativeCtrl
         mulreq_rdy  = 1'b0;             // lock listener
         if (cycle_count == 6'd0) begin
           next_state  = STATE_DONE;     // next cycle complete
-          cycle_count = 6'd32;          // reset counter
         end
       end
       STATE_DONE: begin
         if (mulresp_rdy) begin
           next_state = STATE_IDLE;      // finish cycle
           mulresp_val = 1'b1;           // ready to supply
+          cycle_count = 6'd32;          // reset counter
         end
       end
     endcase
@@ -274,8 +287,8 @@ module imuldiv_IntMulIterativeCtrl
   // combinational logic
   always @(*) begin
     // default off control signals
-    a_mux_sel       = 1'b0;
-    b_mux_sel       = 1'b0;
+    a_mux_sel       = 1'b1;
+    b_mux_sel       = 1'b1;
     result_mux_sel  = 1'b0;
     result_en       = 1'b0;
     add_mux_sel     = 1'b0;
@@ -289,17 +302,20 @@ module imuldiv_IntMulIterativeCtrl
       end
       STATE_COMPUTE: begin
         // compute for each clock cycle
-        if (cycle_count != 6'd32) begin
-          a_mux_sel = 1'b1;        // select the operand A (shifted or original)
-          b_mux_sel = 1'b1;        // select the operand B (shifted or original)
-        end                        // use supplied values on the 1st cycle
-        result_mux_sel = 1'b1;     // enable result selection
-        result_en = 1'b1;          // enable result accumulation
-        add_mux_sel = 1'b1;        // use the add logic for result accumulation
+        if (b_reg[0] == 1'b1)
+          add_mux_sel = 1'b1;             // use the add logic for result accumulation
+        if (cycle_count == 6'd31) begin   // use supplied values on the 1st cycle
+          a_mux_sel = 1'b0;               // select the operand A (shifted or original)
+          b_mux_sel = 1'b0;               // select the operand B (shifted or original)
+        end else if (cycle_count == 6'b0) begin  // signal to check unsigning before flash
+          sign_en = 1'b1;
+        end     
+        result_mux_sel = 1'b1;            // enable result selection
+        result_en = 1'b1;                 // enable result accumulation
       end
       STATE_DONE: begin
         // result is ready to be sent
-        sign_mux_sel = sign;       // If sign flag is enabled, select signed result
+        sign_mux_sel = sign;              // If sign flag is enabled, select signed result
       end
     endcase
   end
