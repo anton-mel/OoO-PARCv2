@@ -20,11 +20,12 @@ module imuldiv_IntMulIterative
   input         mulresp_rdy
 );
 
-  // Control Signals
+  // dpath <-> ctl
+  // wiring level
   wire a_mux_sel;
   wire b_mux_sel;
-
   wire result_mux_sel;
+  wire cntr_mux_sel;
   wire sign_mux_sel;
   wire add_mux_sel;
 
@@ -32,6 +33,7 @@ module imuldiv_IntMulIterative
   wire sign_en;
   wire sign;
 
+  wire counter;
   wire [31:0] b_reg;
 
   imuldiv_IntMulIterativeDpath dpath
@@ -42,10 +44,11 @@ module imuldiv_IntMulIterative
     .mulreq_msg_b       (mulreq_msg_b),
     .mulresp_msg_result (mulresp_msg_result),
 
-    // Control Signals for mux selection
+    // MUX Control Signals
     .a_mux_sel          (a_mux_sel),
     .b_mux_sel          (b_mux_sel),
     .result_mux_sel     (result_mux_sel),
+    .cntr_mux_sel       (cntr_mux_sel),
     .sign_mux_sel       (sign_mux_sel),
     .add_mux_sel        (add_mux_sel),
 
@@ -53,6 +56,7 @@ module imuldiv_IntMulIterative
     .sign_en            (sign_en),
     .sign               (sign),
 
+    .counter            (counter),
     .b_reg              (b_reg)
   );
 
@@ -66,16 +70,18 @@ module imuldiv_IntMulIterative
     .mulreq_rdy         (mulreq_rdy),
     .mulresp_val        (mulresp_val),
 
-    // Control Signals for mux selection
+    // MUX Control Signals
     .a_mux_sel          (a_mux_sel),
     .b_mux_sel          (b_mux_sel),
     .result_mux_sel     (result_mux_sel),
+    .cntr_mux_sel       (cntr_mux_sel),
     .sign_mux_sel       (sign_mux_sel),
     .add_mux_sel        (add_mux_sel),
     .result_en          (result_en),
     .sign_en            (sign_en),
     .sign               (sign),
 
+    .counter            (counter),
     .b_reg              (b_reg)
   );
 
@@ -90,6 +96,7 @@ module imuldiv_IntMulIterativeDpath
   input         clk,
   input         reset,
 
+  // Module Inputs/Outputs
   input  [31:0] mulreq_msg_a,       // Operand A
   input  [31:0] mulreq_msg_b,       // Operand B
   output [63:0] mulresp_msg_result, // Result
@@ -98,12 +105,14 @@ module imuldiv_IntMulIterativeDpath
   input         a_mux_sel,
   input         b_mux_sel,
   input         result_mux_sel,
+  input         cntr_mux_sel,
   input         sign_mux_sel,
   input         add_mux_sel,
   input         result_en,
   input         sign_en,
   output reg    sign,
 
+  output reg    counter,
   output [31:0] b_reg
 );
 
@@ -198,6 +207,30 @@ module imuldiv_IntMulIterativeDpath
   assign mulresp_msg_result
     = (sign_mux_sel) ? (~result_reg + 1'b1) : result_reg;
 
+  //--------------------------------------------------------------------
+  // Counter Handling
+  //--------------------------------------------------------------------
+
+  reg [4:0] counter_reg;
+
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      counter_reg <= 5'd31;
+    end else begin
+      if (cntr_mux_sel) begin
+        counter_reg <= counter_reg - 1;
+        // next clock cycle signal reg is 0
+        if (counter_reg == 5'd1)
+          counter <= 1;
+        else
+          counter <= 0;
+      end else begin
+        counter_reg <= 5'd31;
+        counter <= 0;
+      end
+    end
+  end
+
 endmodule
 
 //------------------------------------------------------------------------
@@ -217,12 +250,14 @@ module imuldiv_IntMulIterativeCtrl
   output reg    a_mux_sel,
   output reg    b_mux_sel,
   output reg    result_mux_sel,
+  output reg    cntr_mux_sel,
   output reg    add_mux_sel,
   output reg    sign_mux_sel,
   output reg    result_en,
   output reg    sign_en,
   input         sign,
 
+  input         counter,
   input [31:0]  b_reg
 );
 
@@ -236,43 +271,36 @@ module imuldiv_IntMulIterativeCtrl
   localparam STATE_UNUSED  = 2'b11;
 
   reg [2:0] state, next_state;
-  reg [5:0] cycle_count;
-
+  
   always @(posedge clk or posedge reset) begin
     if (reset) begin
       state <= STATE_IDLE;
-      cycle_count <= 6'd32;
     end else begin
       state <= next_state;
-
-      if (next_state == STATE_COMPUTE)
-        cycle_count <= cycle_count - 1;
-      else
-        cycle_count <= 6'd32;
     end
   end
 
-  // state logic
+  // rdy/val logic
   always @(*) begin
-    next_state  = state;  // default out to IDLE
-    mulreq_rdy  = 1'b0;   // -> mod (keep listening)
-    mulresp_val = 1'b0;   // mod -> (but do not supply)
+    next_state  = state;  // halt (no changes)
+    mulreq_rdy  = 1'b0;   // -> mod (keep fetching?)
+    mulresp_val = 1'b0;   // mod -> (ask to sink?)
 
     case (state)
       STATE_IDLE: begin
-        mulreq_rdy  = 1'b1;
-        if (mulreq_val) begin
+        mulreq_rdy  = 1'b1;             // fetch until
+        if (mulreq_val) begin           // data is available
           next_state  = STATE_COMPUTE;  // begin compute
         end
       end
       STATE_COMPUTE: begin
-        if (cycle_count == 6'd0) begin
-          next_state  = STATE_DONE;     // next cycle complete
+        if (counter) begin              // while counter signals
+          next_state  = STATE_DONE;     // execute 32 cycles
         end
       end
       STATE_DONE: begin
         mulresp_val = 1'b1;             // ready to supply
-        if (mulresp_rdy) begin
+        if (mulresp_rdy) begin          // data flashed
           next_state = STATE_IDLE;      // finish cycle
         end
       end
@@ -282,11 +310,12 @@ module imuldiv_IntMulIterativeCtrl
     endcase
   end
 
-  // combinational logic
+  // switch logic
   always @(*) begin
     // default off control signals
-    a_mux_sel       = 1'b1;
-    b_mux_sel       = 1'b1;
+    a_mux_sel       = 1'b1; // shifted unless IDLE
+    b_mux_sel       = 1'b1; // shifted unless IDLE
+    cntr_mux_sel    = 1'b1; // shifted unless IDLE
     result_mux_sel  = 1'b0;
     result_en       = 1'b0;
     add_mux_sel     = 1'b0;
@@ -296,9 +325,12 @@ module imuldiv_IntMulIterativeCtrl
     case (state)
       STATE_IDLE: begin
         if (mulreq_val) begin             // if data is present
+          // propagate values 
+          // to prevent overwrite
           sign_en = 1'b1;                 // remember current sign state
-          a_mux_sel = 1'b0;               // select the operand A (shifted or original)
-          b_mux_sel = 1'b0;               // select the operand B (shifted or original)
+          a_mux_sel = 1'b0;               // fetch the operand A (shifted or original)
+          b_mux_sel = 1'b0;               // fetch the operand B (shifted or original)
+          cntr_mux_sel = 1'b0;            // prepare the counter (shifted or 5'b31)
         end
       end
       STATE_COMPUTE: begin
