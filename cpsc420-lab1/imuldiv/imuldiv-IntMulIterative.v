@@ -188,20 +188,15 @@ module imuldiv_IntMulIterativeDpath
   always @( posedge clk or posedge reset ) begin
     if (reset) begin
       sign <= 1'b0;
-      sign_reg <= 64'b0;
     end else begin
-      if (sign_en && is_result_signed) begin
+      if (sign_en) begin
         sign <= is_result_signed;
-        sign_reg <= (~result_reg + 1'b1);
-      end else begin
-        sign <= 1'b0;
-        sign_reg <= 64'b0;
       end
     end
   end
 
   assign mulresp_msg_result
-    = (sign_mux_sel) ? sign_reg : result_reg;
+    = (sign_mux_sel) ? (~result_reg + 1'b1) : result_reg;
 
 endmodule
 
@@ -235,9 +230,10 @@ module imuldiv_IntMulIterativeCtrl
   // State Encoding
   //--------------------------------------------------------------------
 
-  localparam STATE_IDLE    = 3'b000;
-  localparam STATE_COMPUTE = 3'b001;
-  localparam STATE_DONE    = 3'b010;
+  localparam STATE_IDLE    = 2'b00;
+  localparam STATE_COMPUTE = 2'b01;
+  localparam STATE_DONE    = 2'b10;
+  localparam STATE_UNUSED  = 2'b11;
 
   reg [2:0] state, next_state;
   reg [5:0] cycle_count;
@@ -248,38 +244,40 @@ module imuldiv_IntMulIterativeCtrl
       cycle_count <= 6'd32;
     end else begin
       state <= next_state;
-      // avoids count down after coutner reset
+
       if (next_state == STATE_COMPUTE)
-        cycle_count <= cycle_count - 1; // calculate A, B, RESULT
+        cycle_count <= cycle_count - 1;
+      else
+        cycle_count <= 6'd32;
     end
   end
 
   // state logic
   always @(*) begin
     next_state  = state;  // default out to IDLE
-    mulreq_rdy  = 1'b1;   // -> mod (keep listening)
+    mulreq_rdy  = 1'b0;   // -> mod (keep listening)
     mulresp_val = 1'b0;   // mod -> (but do not supply)
 
     case (state)
       STATE_IDLE: begin
-        // if data is present and valid
-        if (mulreq_val && mulresp_rdy) begin
-          mulreq_rdy  = 1'b0;           // lock listener
+        mulreq_rdy  = 1'b1;
+        if (mulreq_val) begin
           next_state  = STATE_COMPUTE;  // begin compute
         end
       end
       STATE_COMPUTE: begin
-        mulreq_rdy  = 1'b0;             // lock listener
         if (cycle_count == 6'd0) begin
           next_state  = STATE_DONE;     // next cycle complete
         end
       end
       STATE_DONE: begin
+        mulresp_val = 1'b1;             // ready to supply
         if (mulresp_rdy) begin
           next_state = STATE_IDLE;      // finish cycle
-          mulresp_val = 1'b1;           // ready to supply
-          cycle_count = 6'd32;          // reset counter
         end
+      end
+      STATE_UNUSED: begin
+        next_state = STATE_IDLE;
       end
     endcase
   end
@@ -297,19 +295,16 @@ module imuldiv_IntMulIterativeCtrl
 
     case (state)
       STATE_IDLE: begin
-        // no operation, waiting 
-        // for request to begin
+        if (mulreq_val) begin             // if data is present
+          sign_en = 1'b1;                 // remember current sign state
+          a_mux_sel = 1'b0;               // select the operand A (shifted or original)
+          b_mux_sel = 1'b0;               // select the operand B (shifted or original)
+        end
       end
       STATE_COMPUTE: begin
         // compute for each clock cycle
         if (b_reg[0] == 1'b1)
           add_mux_sel = 1'b1;             // use the add logic for result accumulation
-        if (cycle_count == 6'd31) begin   // use supplied values on the 1st cycle
-          a_mux_sel = 1'b0;               // select the operand A (shifted or original)
-          b_mux_sel = 1'b0;               // select the operand B (shifted or original)
-        end else if (cycle_count == 6'b0) begin  // signal to check unsigning before flash
-          sign_en = 1'b1;
-        end     
         result_mux_sel = 1'b1;            // enable result selection
         result_en = 1'b1;                 // enable result accumulation
       end
