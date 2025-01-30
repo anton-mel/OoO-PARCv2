@@ -51,8 +51,11 @@ module imuldiv_IntDivIterative
     .a_mux_sel          (a_mux_sel),
     .rem_sign_mux_sel   (rem_sign_mux_sel),
     .div_sign_mux_sel   (div_sign_mux_sel),
+    .div_sign           (div_sign),
+    .rem_sign           (rem_sign),
     .sub_mux_sel        (sub_mux_sel),
     .sub_out            (sub_out),
+    .sign_en            (sign_en), 
     .a_en               (a_en),
     .b_en               (b_en)
   );
@@ -67,7 +70,12 @@ module imuldiv_IntDivIterative
     .divresp_rdy        (divresp_rdy),
     .sub_mux_sel        (sub_mux_sel),
     .a_mux_sel          (a_mux_sel),
+    .div_sign           (div_sign),
+    .rem_sign           (rem_sign),
+    .rem_sign_mux_sel   (rem_sign_mux_sel),
+    .div_sign_mux_sel   (div_sign_mux_sel),
     .sub_out            (sub_out),
+    .sign_en            (sign_en),
     .a_en               (a_en),
     .b_en               (b_en)
   );
@@ -95,7 +103,10 @@ module imuldiv_IntDivIterativeDpath
   input         sub_mux_sel,
   input         rem_sign_mux_sel,
   input         div_sign_mux_sel,
+  output reg    div_sign,
+  output reg    rem_sign,
 
+  input         sign_en,
   input         a_en,
   input         b_en,
 
@@ -171,15 +182,21 @@ module imuldiv_IntDivIterativeDpath
   // Result Handling
   //--------------------------------------------------------------------
 
-  // wire [31:0] unsigned_quotient
-  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED )   ? unsigned_a / unsigned_b
-  //   : ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_UNSIGNED ) ? a_reg / b_reg
-  //   :                                                   32'bx;
-
-  // wire [31:0] unsigned_remainder
-  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED )   ? unsigned_a % unsigned_b
-  //   : ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_UNSIGNED ) ? a_reg % b_reg
-  //   :                                                   32'bx;
+  // Signing logic
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      div_sign <= 1'b0;
+      rem_sign <= 1'b0;
+    end else begin
+      if (sign_en) begin
+        div_sign <= divreq_msg_a[31] ^ divreq_msg_b[31];
+        rem_sign <= divreq_msg_a[31];
+      end else begin
+        div_sign <= 1'b0;
+        rem_sign <= 1'b0;
+      end
+    end
+  end
 
   // Determine whether or not result is signed. Usually the result is
   // signed if one and only one of the input operands is signed. In other
@@ -228,8 +245,13 @@ module imuldiv_IntDivIterativeCtrl
 
   input [64:0]  sub_out,
 
+  input         rem_sign,
+  input         div_sign,
+  output reg    rem_sign_mux_sel,
+  output reg    div_sign_mux_sel,
   output reg    sub_mux_sel,
   output reg    a_mux_sel,
+  output reg    sign_en,
   output reg    a_en,
   output reg    b_en
 );
@@ -252,8 +274,10 @@ module imuldiv_IntDivIterativeCtrl
     end else begin
       state <= next_state;
       // avoids count down after coutner reset
-      if (next_state == STATE_COMPUTE)
+      if (state == STATE_COMPUTE)
         cycle_count <= cycle_count - 1; // calculate A, B, RESULT
+      if (state == STATE_DONE)
+        cycle_count <= 5'd31;
     end
   end
 
@@ -273,7 +297,6 @@ module imuldiv_IntDivIterativeCtrl
         end
       end
       STATE_COMPUTE: begin
-        divresp_val = 1'b1;
         divreq_rdy  = 1'b0;             // lock listener
         if (cycle_count == 5'd0) begin
           next_state  = STATE_DONE;     // next cycle complete
@@ -294,6 +317,9 @@ module imuldiv_IntDivIterativeCtrl
     // default off control signals
     a_mux_sel = 1'b0;
     sub_mux_sel = 1'b0;
+    rem_sign_mux_sel = 1'b0;
+    div_sign_mux_sel = 1'b0;
+    sign_en = 1'b0;
     a_en = 1'b0;
     b_en = 1'b0;
 
@@ -309,16 +335,21 @@ module imuldiv_IntDivIterativeCtrl
         // compute for each clock cycle
         a_en = 1'b1;
         b_en = 1'b1;
-        if (cycle_count == 6'd30) begin
+        if (cycle_count == 5'd30) begin
           a_mux_sel = 1'b1;
         end
-        // th values is negative
+        // values are negative
         if (!sub_out[64]) begin
           sub_mux_sel = 1'b1;
+        end
+        if (cycle_count == 5'd0) begin
+          sign_en = 1'b1;
         end
       end
       STATE_DONE: begin
         // result is ready to be sent
+        rem_sign_mux_sel = rem_sign;
+        div_sign_mux_sel = div_sign;
       end
     endcase
   end
