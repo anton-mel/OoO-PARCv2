@@ -56,7 +56,8 @@ module imuldiv_IntMulIterative
     .sign_en            (sign_en),
     .sign               (sign),
 
-    .counter            (counter)
+    .counter            (counter),
+    .b_reg              (b_reg)
   );
 
   imuldiv_IntMulIterativeCtrl ctrl
@@ -110,13 +111,14 @@ module imuldiv_IntMulIterativeDpath
   input         result_en,
   input         sign_en,
   output reg    sign,
-  output reg    counter
+
+  output reg    counter,
+  output reg [31:0] b_reg
 );
 
   // Registers for the MM
   reg  [63:0] result_reg;               // Register for storing operand RESULT
   reg  [63:0] a_reg;                    // Register for storing operand A
-  reg  [31:0] b_reg;                    // Register for storing operand B
   reg  [63:0] sign_reg;                 // Register for storing signed value
   reg         val_reg;                  // Register for storing valid bit
 
