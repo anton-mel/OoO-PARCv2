@@ -121,6 +121,38 @@ module tester;
   end
   `VC_TEST_CASE_END
 
-  `VC_TEST_SUITE_END( 1 )
+  //----------------------------------------------------------------------
+  // Add Unsigned Test Case Here
+  //----------------------------------------------------------------------
+  
+  `VC_TEST_CASE_BEGIN( 2, "mul (my private cases)" )
+  begin
+
+    // Large number multiplications
+    t0.src.m[0] = 67'h0_7fffffff_7fffffff; t0.sink.m[0] = 64'h3fffffff_00000001;
+    t0.src.m[1] = 67'h0_80000000_80000000; t0.sink.m[1] = 64'h40000000_00000000;
+    t0.src.m[2] = 67'h0_00001000_00100000; t0.sink.m[2] = 64'h00000001_00000000;
+
+    // Multiplication by power of two
+    t0.src.m[3] = 67'h0_00000001_00000010; t0.sink.m[3] = 64'h00000000_00000010;
+    t0.src.m[4] = 67'h0_00000002_00000020; t0.sink.m[4] = 64'h00000000_00000040;
+    t0.src.m[5] = 67'h0_fffffffe_00000004; t0.sink.m[5] = 64'hffffffff_fffffff8;
+
+    // Edge cases with small and large values
+    t0.src.m[6] = 67'h0_00000001_ffffffff; t0.sink.m[6] = 64'hffffffff_ffffffff;
+    t0.src.m[7] = 67'h0_00010000_00010000; t0.sink.m[7] = 64'h00000001_00000000;
+
+    // Extreme case: Largest signed 32-bit * Smallest signed 32-bit
+    t0.src.m[8] = 67'h0_7fffffff_80000000; t0.sink.m[8] = 64'hc0000000_80000000;
+    t0.src.m[9] = 67'h0_6ff147af_11abcdef; t0.sink.m[9] = 64'h07ba25fa_398e0f61;
+
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "Is sink finished?", t0_done )
+
+  end
+  `VC_TEST_CASE_END
+
+  `VC_TEST_SUITE_END( 2 )
 
 endmodule

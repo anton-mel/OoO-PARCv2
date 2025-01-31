@@ -31,7 +31,6 @@ module imuldiv_IntDivIterative
   wire rem_sign;
   wire sign_en;
   wire cntr_mux_sel;
-  wire is_op_signed;
   wire a_en;
   wire b_en;
   wire rem_sign_mux_sel;
@@ -48,7 +47,9 @@ module imuldiv_IntDivIterative
     .divreq_msg_a       (divreq_msg_a),
     .divreq_msg_b       (divreq_msg_b),
     .divresp_msg_result (divresp_msg_result),
+    .divreq_rdy         (divreq_rdy),
     .divreq_val         (divreq_val),
+    .divresp_val        (divresp_val),
     .divresp_rdy        (divresp_rdy),
     .a_mux_sel          (a_mux_sel),
     .cntr_mux_sel       (cntr_mux_sel),
@@ -96,8 +97,9 @@ module imuldiv_IntDivIterativeDpath
 (
   input         clk,
   input         reset,
-  // assign divreq_rdy  = divresp_rdy;
-  // assign divresp_val = val_reg;
+
+  input         divreq_rdy,
+  input         divresp_val,
   input         divresp_rdy,
   input         divreq_val,
 
@@ -122,6 +124,7 @@ module imuldiv_IntDivIterativeDpath
   output [63:0] divresp_msg_result  // Result of operation
 );
 
+  wire        stall_div;   // REgister to lock current inputs
   reg         fn_reg;      // Register for storing function
   reg  [64:0] a_reg;       // Register for storing operand A
   reg  [64:0] b_reg;       // Register for storing operand B
@@ -131,26 +134,20 @@ module imuldiv_IntDivIterativeDpath
   wire [64:0] a_shift_out;
   wire [64:0] sub_mux_out;
 
-  wire [31:0] singed_res_rem_mux_out, singed_res_div_mux_out;
+  wire [31:0] signed_res_rem_mux_out, signed_res_div_mux_out;
 
-  always @( posedge clk ) begin
-    // Stall the pipeline if the 
-    // response interface is not ready
-    if ( divresp_rdy ) begin
-      fn_reg  <= divreq_msg_fn;
-    end
-  end
+  // Stall the pipeline inputs
+  wire sign_bit_a = divreq_msg_a[31];
+  wire sign_bit_b = divreq_msg_b[31];
 
   //----------------------------------------------------------------------
   // Combinational Logic
   //----------------------------------------------------------------------
 
-  // Extract sign bits
-  wire sign_bit_a = divreq_msg_a[31];
-  wire sign_bit_b = divreq_msg_a[31];
   // Unsign operands if necessary
-  wire [31:0] unsigned_a = ( sign_bit_a ) ? (~divreq_msg_a[31:0] + 1'b1) : divreq_msg_a[31:0];
-  wire [31:0] unsigned_b = ( sign_bit_b ) ? (~divreq_msg_a[31:0] + 1'b1) : divreq_msg_a[31:0];
+  wire [31:0] unsigned_a = (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED && sign_bit_a) ? (~divreq_msg_a[31:0] + 1'b1) : divreq_msg_a[31:0];
+  wire [31:0] unsigned_b = (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED && sign_bit_b) ? (~divreq_msg_b[31:0] + 1'b1) : divreq_msg_b[31:0];
+  
   // Multiplexer selection
   assign a_mux = (a_mux_sel) ? sub_mux_out : {33'b0, unsigned_a};
 
@@ -166,13 +163,9 @@ module imuldiv_IntDivIterativeDpath
     end else begin
       if (a_en) begin
         a_reg <= a_mux;
-      end else begin
-        a_reg <= 65'b0;
       end
       if (b_en) begin
         b_reg <= {1'b0, unsigned_b, 32'b0};
-      end else begin
-        b_reg <= 65'b0;
       end
     end
   end
@@ -193,11 +186,8 @@ module imuldiv_IntDivIterativeDpath
       rem_sign <= 1'b0;
     end else begin
       if (sign_en) begin
-        div_sign <= divreq_msg_a[31] ^ divreq_msg_b[31];
-        rem_sign <= divreq_msg_a[31];
-      end else begin
-        div_sign <= 1'b0;
-        rem_sign <= 1'b0;
+        div_sign <= (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED) ? (sign_bit_a ^ sign_bit_b) : 1'b0;
+        rem_sign <= (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED) ? sign_bit_a : 1'b0;
       end
     end
   end
@@ -209,24 +199,24 @@ module imuldiv_IntDivIterativeDpath
   // we simply assume that the result is signed if the dividend for the
   // rem operation is signed.
 
-  wire is_result_signed_div = sign_bit_a ^ sign_bit_b;
-  wire is_result_signed_rem = sign_bit_a;
-
   // Sign the final results if necessary
 
-  // wire [31:0] signed_quotient
-  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
-  //    && is_result_signed_div ) ? ~unsigned_quotient + 1'b1
-  //   :                            unsigned_quotient;
+  assign signed_res_rem_mux_out = 
+    (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED 
+    && rem_sign_mux_sel)
+    ? (~a_reg[63:32] + 1'b1) 
+    : a_reg[63:32];
 
-  // wire [31:0] signed_remainder
-  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
-  //    && is_result_signed_rem )   ? ~unsigned_remainder + 1'b1
-  //  :                              unsigned_remainder;
+  assign signed_res_div_mux_out = 
+      (divreq_msg_fn == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED 
+      && div_sign_mux_sel) 
+      ? (~a_reg[31:0] + 1'b1) 
+      : a_reg[31:0];
 
-  assign singed_res_rem_mux_out = (rem_sign_mux_sel) ? a_reg[63:32] : a_reg[63:32];
-  assign singed_res_div_mux_out = (div_sign_mux_sel) ? a_reg[31:0] : a_reg[31:0];
-  assign divresp_msg_result = { singed_res_rem_mux_out, singed_res_div_mux_out };
+  assign divresp_msg_result = { 
+    signed_res_rem_mux_out,
+    signed_res_div_mux_out
+  };
 
   //--------------------------------------------------------------------
   // Counter Handling
@@ -335,7 +325,7 @@ module imuldiv_IntDivIterativeCtrl
   // switch logic
   always @(*) begin
     // default off control signals
-    cntr_mux_sel      = 1'b1;     // shifted unless IDLE
+    cntr_mux_sel      = 1'b0;     // shifted unless IDLE
     a_mux_sel         = 1'b1;     // shifted unless IDLE
     sub_mux_sel       = 1'b0;
     rem_sign_mux_sel  = 1'b0;
@@ -349,25 +339,23 @@ module imuldiv_IntDivIterativeCtrl
         // propagate values to prevent
         // overwrite upon req_rdy is on
         if (divreq_val) begin
-          // sign_en = 1'b1;
-          a_mux_sel     = 1'b0; // fetch the operand A (shifted or original)
+          sign_en       = 1'b1; // remember current sign state
           a_en          = 1'b1; // register A to avoid overwrite
           b_en          = 1'b1; // register B to avoid overwrite
-          cntr_mux_sel  = 1'b0; // prepare the counter (shifted or 5'b31)
         end
+        a_mux_sel     = 1'b0;   // fetch the operand A (shifted or original)
       end
       STATE_COMPUTE: begin
-        a_en = 1'b1; // keep storing further cycle states
-        b_en = 1'b1; // keep storing further cycle states
-        
-        if (sub_out[64]) begin  // if difference is negative
+        cntr_mux_sel  = 1'b1;   // pexecute counter (shifted or 5'b31)
+        a_en          = 1'b1;   // fetched shifted operation
+
+        if (sub_out[64])        // if difference is negative
           sub_mux_sel = 1'b1;   // use previous a_shit_out 
-        end
       end
       STATE_DONE: begin
         // result is ready to be sent
-        // rem_sign_mux_sel = rem_sign;
-        // div_sign_mux_sel = div_sign;
+        div_sign_mux_sel = div_sign;
+        rem_sign_mux_sel = rem_sign;
       end
     endcase
   end

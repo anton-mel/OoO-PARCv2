@@ -128,7 +128,22 @@ module tester;
   //----------------------------------------------------------------------
   // Add Unsigned Test Case Here
   //----------------------------------------------------------------------
+  
+  // `VC_TEST_CASE_BEGIN( 2, "unsigned div/rem" )
+  // begin
+  //   // Add more test cases for unsigned division
+  //   t0.src.m[0] = 65'h1_00000001_00000001; t0.sink.m[ 8] = 64'h00000000_00000001;  // 1 / 1
+  //   t0.src.m[1] = 65'h1_00000064_00000002; t0.sink.m[ 9] = 64'h00000032_00000000;  // 100 / 2
+  //   t0.src.m[2] = 65'h1_00000032_00000004; t0.sink.m[10] = 64'h00000008_00000000;  // 50 / 4
+  //   t0.src.m[3] = 65'h1_00000064_00000010; t0.sink.m[11] = 64'h00000006_00000000;  // 100 / 16
 
-  `VC_TEST_SUITE_END( 1 /* replace with number of tests cases */ )
+  //   #5;   t0_reset = 1'b1;
+  //   #20;  t0_reset = 1'b0;
+  //   #10000; `VC_TEST_CHECK( "Is sink finished?", t0_done )
+
+  // end
+  // `VC_TEST_CASE_END
+
+  `VC_TEST_SUITE_END( 1 /* number of test cases */ )
 
 endmodule
