@@ -21,8 +21,24 @@ module imuldiv_IntDivIterative
 
   output [63:0] divresp_msg_result,
   output        divresp_val,
+  output [64:0] sub_out,
   input         divresp_rdy
 );
+
+  // Control Signals
+  wire a_mux_sel;
+  wire div_sign;
+  wire rem_sign;
+  wire sign_en;
+  wire cntr_mux_sel;
+  wire is_op_signed;
+  wire a_en;
+  wire b_en;
+  wire rem_sign_mux_sel;
+  wire div_sign_mux_sel;
+  wire sub_mux_sel;
+  wire [64:0] sub_out;
+  wire counter;
 
   imuldiv_IntDivIterativeDpath dpath
   (
@@ -31,15 +47,43 @@ module imuldiv_IntDivIterative
     .divreq_msg_fn      (divreq_msg_fn),
     .divreq_msg_a       (divreq_msg_a),
     .divreq_msg_b       (divreq_msg_b),
-    .divreq_val         (divreq_val),
-    .divreq_rdy         (divreq_rdy),
     .divresp_msg_result (divresp_msg_result),
-    .divresp_val        (divresp_val),
-    .divresp_rdy        (divresp_rdy)
+    .divreq_val         (divreq_val),
+    .divresp_rdy        (divresp_rdy),
+    .a_mux_sel          (a_mux_sel),
+    .cntr_mux_sel       (cntr_mux_sel),
+    .rem_sign_mux_sel   (rem_sign_mux_sel),
+    .div_sign_mux_sel   (div_sign_mux_sel),
+    .div_sign           (div_sign),
+    .rem_sign           (rem_sign),
+    .sub_mux_sel        (sub_mux_sel),
+    .sub_out            (sub_out),
+    .sign_en            (sign_en), 
+    .a_en               (a_en),
+    .b_en               (b_en),
+    .counter            (counter)
   );
 
   imuldiv_IntDivIterativeCtrl ctrl
   (
+    .clk                (clk),
+    .reset              (reset),
+    .divreq_val         (divreq_val),
+    .divreq_rdy         (divreq_rdy),
+    .divresp_val        (divresp_val),
+    .divresp_rdy        (divresp_rdy),
+    .sub_mux_sel        (sub_mux_sel),
+    .a_mux_sel          (a_mux_sel),
+    .div_sign           (div_sign),
+    .rem_sign           (rem_sign),
+    .cntr_mux_sel       (cntr_mux_sel),
+    .rem_sign_mux_sel   (rem_sign_mux_sel),
+    .div_sign_mux_sel   (div_sign_mux_sel),
+    .sub_out            (sub_out),
+    .sign_en            (sign_en),
+    .a_en               (a_en),
+    .b_en               (b_en),
+    .counter            (counter)
   );
 
 endmodule
@@ -52,37 +96,49 @@ module imuldiv_IntDivIterativeDpath
 (
   input         clk,
   input         reset,
+  // assign divreq_rdy  = divresp_rdy;
+  // assign divresp_val = val_reg;
+  input         divresp_rdy,
+  input         divreq_val,
 
-  input         divreq_msg_fn,      // Function of MulDiv Unit
   input  [31:0] divreq_msg_a,       // Operand A
   input  [31:0] divreq_msg_b,       // Operand B
-  input         divreq_val,         // Request val Signal
-  output        divreq_rdy,         // Request rdy Signal
+  input         divreq_msg_fn,
 
-  output [63:0] divresp_msg_result, // Result of operation
-  output        divresp_val,        // Response val Signal
-  input         divresp_rdy         // Response rdy Signal
+  input         a_mux_sel,
+  input         sub_mux_sel,
+  input         rem_sign_mux_sel,
+  input         div_sign_mux_sel,
+  input         cntr_mux_sel,
+  output reg    div_sign,
+  output reg    rem_sign,
+
+  input         sign_en,
+  input         a_en,
+  input         b_en,
+
+  output reg    counter,
+  output [64:0] sub_out,
+  output [63:0] divresp_msg_result  // Result of operation
 );
 
-  //----------------------------------------------------------------------
-  // Sequential Logic
-  //----------------------------------------------------------------------
-
   reg         fn_reg;      // Register for storing function
-  reg  [31:0] a_reg;       // Register for storing operand A
-  reg  [31:0] b_reg;       // Register for storing operand B
-  reg         val_reg;     // Register for storing valid bit
+  reg  [64:0] a_reg;       // Register for storing operand A
+  reg  [64:0] b_reg;       // Register for storing operand B
+
+  wire [64:0] a_mux;       // Wire for sending A MUX
+  wire [64:0] b_mux;       // Wire for sending B MUX
+  wire [64:0] a_shift_out;
+  wire [64:0] sub_mux_out;
+
+  wire [31:0] singed_res_rem_mux_out, singed_res_div_mux_out;
 
   always @( posedge clk ) begin
-
-    // Stall the pipeline if the response interface is not ready
+    // Stall the pipeline if the 
+    // response interface is not ready
     if ( divresp_rdy ) begin
       fn_reg  <= divreq_msg_fn;
-      a_reg   <= divreq_msg_a;
-      b_reg   <= divreq_msg_b;
-      val_reg <= divreq_val;
     end
-
   end
 
   //----------------------------------------------------------------------
@@ -90,26 +146,61 @@ module imuldiv_IntDivIterativeDpath
   //----------------------------------------------------------------------
 
   // Extract sign bits
-
-  wire sign_bit_a = a_reg[31];
-  wire sign_bit_b = b_reg[31];
-
+  wire sign_bit_a = divreq_msg_a[31];
+  wire sign_bit_b = divreq_msg_a[31];
   // Unsign operands if necessary
+  wire [31:0] unsigned_a = ( sign_bit_a ) ? (~divreq_msg_a[31:0] + 1'b1) : divreq_msg_a[31:0];
+  wire [31:0] unsigned_b = ( sign_bit_b ) ? (~divreq_msg_a[31:0] + 1'b1) : divreq_msg_a[31:0];
+  // Multiplexer selection
+  assign a_mux = (a_mux_sel) ? sub_mux_out : {33'b0, unsigned_a};
 
-  wire [31:0] unsigned_a = ( sign_bit_a ) ? (~a_reg + 1'b1) : a_reg;
-  wire [31:0] unsigned_b = ( sign_bit_b ) ? (~b_reg + 1'b1) : b_reg;
+  //----------------------------------------------------------------------
+  // Sequential Logic
+  //----------------------------------------------------------------------
 
   // Computation logic
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      a_reg <= 65'b0;
+      b_reg <= 65'b0;
+    end else begin
+      if (a_en) begin
+        a_reg <= a_mux;
+      end else begin
+        a_reg <= 65'b0;
+      end
+      if (b_en) begin
+        b_reg <= {1'b0, unsigned_b, 32'b0};
+      end else begin
+        b_reg <= 65'b0;
+      end
+    end
+  end
 
-  wire [31:0] unsigned_quotient
-    = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED )   ? unsigned_a / unsigned_b
-    : ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_UNSIGNED ) ? a_reg / b_reg
-    :                                                   32'bx;
+  // Shifting logic
+  assign a_shift_out = a_reg << 1;
+  assign sub_out = a_shift_out - b_reg;
+  
+  assign sub_mux_out = (sub_mux_sel) ? a_shift_out : {sub_out[64:1], 1'b1};
 
-  wire [31:0] unsigned_remainder
-    = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED )   ? unsigned_a % unsigned_b
-    : ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_UNSIGNED ) ? a_reg % b_reg
-    :                                                   32'bx;
+  //--------------------------------------------------------------------
+  // Result Handling
+  //--------------------------------------------------------------------
+
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      div_sign <= 1'b0;
+      rem_sign <= 1'b0;
+    end else begin
+      if (sign_en) begin
+        div_sign <= divreq_msg_a[31] ^ divreq_msg_b[31];
+        rem_sign <= divreq_msg_a[31];
+      end else begin
+        div_sign <= 1'b0;
+        rem_sign <= 1'b0;
+      end
+    end
+  end
 
   // Determine whether or not result is signed. Usually the result is
   // signed if one and only one of the input operands is signed. In other
@@ -123,24 +214,43 @@ module imuldiv_IntDivIterativeDpath
 
   // Sign the final results if necessary
 
-  wire [31:0] signed_quotient
-    = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
-     && is_result_signed_div ) ? ~unsigned_quotient + 1'b1
-    :                            unsigned_quotient;
+  // wire [31:0] signed_quotient
+  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
+  //    && is_result_signed_div ) ? ~unsigned_quotient + 1'b1
+  //   :                            unsigned_quotient;
 
-  wire [31:0] signed_remainder
-    = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
-     && is_result_signed_rem )   ? ~unsigned_remainder + 1'b1
-   :                              unsigned_remainder;
+  // wire [31:0] signed_remainder
+  //   = ( fn_reg == `IMULDIV_DIVREQ_MSG_FUNC_SIGNED
+  //    && is_result_signed_rem )   ? ~unsigned_remainder + 1'b1
+  //  :                              unsigned_remainder;
 
-  assign divresp_msg_result = { signed_remainder, signed_quotient };
+  assign singed_res_rem_mux_out = (rem_sign_mux_sel) ? a_reg[63:32] : a_reg[63:32];
+  assign singed_res_div_mux_out = (div_sign_mux_sel) ? a_reg[31:0] : a_reg[31:0];
+  assign divresp_msg_result = { singed_res_rem_mux_out, singed_res_div_mux_out };
 
-  // Set the val/rdy signals. The request is ready when the response is
-  // ready, and the response is valid when there is valid data in the
-  // input registers.
+  //--------------------------------------------------------------------
+  // Counter Handling
+  //--------------------------------------------------------------------
 
-  assign divreq_rdy  = divresp_rdy;
-  assign divresp_val = val_reg;
+  reg [4:0] counter_reg;
+
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      counter_reg <= 5'd31;
+    end else begin
+      if (cntr_mux_sel) begin
+        counter_reg <= counter_reg - 1;
+        // next clock cycle signal reg is 0
+        if (counter_reg == 5'd1)
+          counter <= 1;
+        else
+          counter <= 0;
+      end else begin
+        counter_reg <= 5'd31;
+        counter <= 0;
+      end
+    end
+  end
 
 endmodule
 
@@ -150,7 +260,117 @@ endmodule
 
 module imuldiv_IntDivIterativeCtrl
 (
+  input clk,
+  input reset,
+
+  input         divreq_val,
+  output reg    divreq_rdy,
+  output reg    divresp_val,
+  input         divresp_rdy,
+
+  input         counter,
+  input [64:0]  sub_out,
+
+  input         rem_sign,
+  input         div_sign,
+  output reg    rem_sign_mux_sel,
+  output reg    div_sign_mux_sel,
+  output reg    cntr_mux_sel,
+  output reg    sub_mux_sel,
+  output reg    a_mux_sel,
+  output reg    sign_en,
+  output reg    a_en,
+  output reg    b_en
 );
+
+  //--------------------------------------------------------------------
+  // State Encoding
+  //--------------------------------------------------------------------
+
+  localparam STATE_IDLE    = 2'b00;
+  localparam STATE_COMPUTE = 2'b01;
+  localparam STATE_DONE    = 2'b10;
+  localparam STATE_UNUSED  = 2'b11;
+
+  reg [2:0] state, next_state;
+  
+  always @(posedge clk or posedge reset) begin
+    if (reset) begin
+      state <= STATE_IDLE;
+    end else begin
+      state <= next_state;
+    end
+  end
+
+  // rdy/val logic
+  always @(*) begin
+    next_state  = state;  // halt (no changes)
+    divreq_rdy  = 1'b0;   // -> mod (keep fetching?)
+    divresp_val = 1'b0;   // mod -> (ask to sink?)
+
+    case (state)
+      STATE_IDLE: begin
+        divreq_rdy  = 1'b1;             // fetch until
+        if (divreq_val) begin           // data is available
+          next_state  = STATE_COMPUTE;  // begin compute
+        end
+      end
+      STATE_COMPUTE: begin
+        if (counter) begin              // while counter signals
+          next_state  = STATE_DONE;     // execute 32 cycles
+        end
+      end
+      STATE_DONE: begin
+        divresp_val = 1'b1;             // ready to supply
+        if (divresp_rdy) begin          // data flashed
+          next_state = STATE_IDLE;      // finish cycle
+        end
+      end
+      STATE_UNUSED: begin
+        next_state = STATE_IDLE;
+      end
+    endcase
+  end
+
+  // switch logic
+  always @(*) begin
+    // default off control signals
+    cntr_mux_sel      = 1'b1;     // shifted unless IDLE
+    a_mux_sel         = 1'b1;     // shifted unless IDLE
+    sub_mux_sel       = 1'b0;
+    rem_sign_mux_sel  = 1'b0;
+    div_sign_mux_sel  = 1'b0;
+    sign_en           = 1'b0;
+    a_en              = 1'b0;
+    b_en              = 1'b0;
+
+    case (state)
+      STATE_IDLE: begin
+        // propagate values to prevent
+        // overwrite upon req_rdy is on
+        if (divreq_val) begin
+          // sign_en = 1'b1;
+          a_mux_sel     = 1'b0; // fetch the operand A (shifted or original)
+          a_en          = 1'b1; // register A to avoid overwrite
+          b_en          = 1'b1; // register B to avoid overwrite
+          cntr_mux_sel  = 1'b0; // prepare the counter (shifted or 5'b31)
+        end
+      end
+      STATE_COMPUTE: begin
+        a_en = 1'b1; // keep storing further cycle states
+        b_en = 1'b1; // keep storing further cycle states
+        
+        if (sub_out[64]) begin  // if difference is negative
+          sub_mux_sel = 1'b1;   // use previous a_shit_out 
+        end
+      end
+      STATE_DONE: begin
+        // result is ready to be sent
+        // rem_sign_mux_sel = rem_sign;
+        // div_sign_mux_sel = div_sign;
+      end
+    endcase
+  end
 
 endmodule
 

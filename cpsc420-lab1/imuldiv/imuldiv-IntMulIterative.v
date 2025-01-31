@@ -116,10 +116,6 @@ module imuldiv_IntMulIterativeDpath
   output [31:0] b_reg
 );
 
-  //----------------------------------------------------------------------
-  // Sequential Logic
-  //----------------------------------------------------------------------
-
   // Registers for the MM
   reg  [63:0] result_reg;               // Register for storing operand RESULT
   reg  [63:0] a_reg;                    // Register for storing operand A
@@ -139,6 +135,9 @@ module imuldiv_IntMulIterativeDpath
   wire [31:0] b_shift_out;
   wire [63:0] add_mux_out;
 
+  //----------------------------------------------------------------------
+  // Combinational Logic
+  //----------------------------------------------------------------------
 
   // Extract sign bits
   assign sign_bit_a = mulreq_msg_a[31];
@@ -150,9 +149,9 @@ module imuldiv_IntMulIterativeDpath
   assign a_mux = (a_mux_sel) ? a_shift_out : {32'b0, unsigned_a};
   assign b_mux = (b_mux_sel) ? b_shift_out : unsigned_b;
   assign result_mux = (result_mux_sel) ? add_mux_out : 64'b0;
-
+  
   //----------------------------------------------------------------------
-  // Combinational Logic
+  // Sequential Logic
   //----------------------------------------------------------------------
 
   always @( posedge clk or posedge reset ) begin
