@@ -21,7 +21,6 @@ module imuldiv_IntDivIterative
 
   output [63:0] divresp_msg_result,
   output        divresp_val,
-  output [64:0] sub_out,
   input         divresp_rdy
 );
 

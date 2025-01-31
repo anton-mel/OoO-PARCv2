@@ -56,8 +56,7 @@ module imuldiv_IntMulIterative
     .sign_en            (sign_en),
     .sign               (sign),
 
-    .counter            (counter),
-    .b_reg              (b_reg)
+    .counter            (counter)
   );
 
   imuldiv_IntMulIterativeCtrl ctrl
@@ -111,9 +110,7 @@ module imuldiv_IntMulIterativeDpath
   input         result_en,
   input         sign_en,
   output reg    sign,
-
-  output reg    counter,
-  output [31:0] b_reg
+  output reg    counter
 );
 
   // Registers for the MM
