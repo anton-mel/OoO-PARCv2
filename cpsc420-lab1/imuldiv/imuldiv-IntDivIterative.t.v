@@ -129,21 +129,89 @@ module tester;
   // Add Unsigned Test Case Here
   //----------------------------------------------------------------------
   
-  // `VC_TEST_CASE_BEGIN( 2, "unsigned div/rem" )
-  // begin
-  //   // Add more test cases for unsigned division
-  //   t0.src.m[0] = 65'h1_00000001_00000001; t0.sink.m[ 8] = 64'h00000000_00000001;  // 1 / 1
-  //   t0.src.m[1] = 65'h1_00000064_00000002; t0.sink.m[ 9] = 64'h00000032_00000000;  // 100 / 2
-  //   t0.src.m[2] = 65'h1_00000032_00000004; t0.sink.m[10] = 64'h00000008_00000000;  // 50 / 4
-  //   t0.src.m[3] = 65'h1_00000064_00000010; t0.sink.m[11] = 64'h00000006_00000000;  // 100 / 16
+  //----------------------------------------------------------------------
+  // Test Case 2: Unsigned Div/Rem Tests (function = 0)
+  //----------------------------------------------------------------------
+  `VC_TEST_CASE_BEGIN( 2, "Unsigned Div/Rem Tests" )
+  begin
+    // U1: 0 ÷ 1
+    t0.src.m[ 0] = 65'h0_00000000_00000001;  t0.sink.m[ 0] = 64'h00000000_00000000; // Zero dividend
 
-  //   #5;   t0_reset = 1'b1;
-  //   #20;  t0_reset = 1'b0;
-  //   #10000; `VC_TEST_CHECK( "Is sink finished?", t0_done )
+    // U2: 1 ÷ 1
+    t0.src.m[ 1] = 65'h0_00000001_00000001;  t0.sink.m[ 1] = 64'h00000000_00000001; // Unity division
 
-  // end
-  // `VC_TEST_CASE_END
+    // U3: 5 ÷ 7
+    t0.src.m[ 2] = 65'h0_00000005_00000007;  t0.sink.m[ 2] = 64'h00000005_00000000; // Dividend less than divisor
 
-  `VC_TEST_SUITE_END( 1 /* number of test cases */ )
+    // U4: 7 ÷ 5
+    t0.src.m[ 3] = 65'h0_00000007_00000005;  t0.sink.m[ 3] = 64'h00000002_00000001; // 7/5: Q=1, R=2
+
+    // U5: 0xFFFFFFFF ÷ 2
+    t0.src.m[ 4] = 65'h0_FFFFFFFF_00000002;  t0.sink.m[ 4] = 64'h00000001_7FFFFFFF; // Max unsigned / 2
+
+    // U6: 0xFFFFFFFF ÷ 0xFFFFFFFF
+    t0.src.m[ 5] = 65'h0_FFFFFFFF_FFFFFFFF;  t0.sink.m[ 5] = 64'h00000000_00000001; // Identical operands
+
+    // U7: 0x80000000 ÷ 2
+    t0.src.m[ 6] = 65'h0_80000000_00000002;  t0.sink.m[ 6] = 64'h00000000_40000000; // Even division
+
+    // U8: 0x80000001 ÷ 0x80000000
+    t0.src.m[ 7] = 65'h0_80000001_80000000;  t0.sink.m[ 7] = 64'h00000001_00000001; // Just over the divisor
+
+    // U9: 123456789 ÷ 10000
+    // 123456789 = 0x075BCD15; 10000 = 0x00002710
+    // Expected: Quotient = 12345 (0x3039), Remainder = 6789 (0x1A85)
+    t0.src.m[ 8] = 65'h0_075BCD15_00002710;  t0.sink.m[ 8] = 64'h00001A85_00003039;
+
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "Unsigned Div/Rem finished", t0_done );
+  end
+  `VC_TEST_CASE_END
+
+  //----------------------------------------------------------------------
+  // Test Case 3: Divisor as Power-of-Two Tests
+  //----------------------------------------------------------------------
+  `VC_TEST_CASE_BEGIN( 3, "Divisor as Power-of-Two Tests" )
+  begin
+    // --- Signed Divisions (function bit = 1) ---
+    // S1: 100 ÷ 2
+    // 100 / 2 = 50, remainder 0.
+    // Quotient = 50 (0x32), Remainder = 0.
+    t0.src.m[0] = 65'h1_00000064_00000002;  
+    t0.sink.m[0] = 64'h00000000_00000032;
+    
+    // S2: (-100) ÷ 4
+    // -100 in 32-bit two's complement = 0xFFFFFF9C.
+    // -100 / 4 = -25, remainder 0.
+    // Quotient = -25 = 0xFFFFFFE7, Remainder = 0.
+    t0.src.m[1] = 65'h1_FFFFFF9C_00000004;
+    t0.sink.m[1] = 64'h00000000_FFFFFFE7;
+    
+    // S3: 123 ÷ 8
+    // 123 / 8 = 15 remainder 3.
+    // Quotient = 15 (0x0F), Remainder = 3 (0x03).
+    t0.src.m[2] = 65'h1_0000007B_00000008;  
+    t0.sink.m[2] = 64'h00000003_0000000F;
+    
+    // --- Unsigned Divisions (function bit = 0) ---
+    // U1: 0x12345678 ÷ 2
+    // Since 0x12345678 is even, the quotient is 0x12345678 >> 1 = 0x091A2B3C, remainder = 0.
+    t0.src.m[3] = 65'h0_12345678_00000002;
+    t0.sink.m[3] = 64'h00000000_091A2B3C;
+    
+    // U2: 0xFFFFFFFF ÷ 8
+    // 0xFFFFFFFF = 4294967295, divided by 8 gives:
+    //   Quotient = 536870911 = 0x1FFFFFFF, Remainder = 7.
+    t0.src.m[4] = 65'h0_FFFFFFFF_00000008;
+    t0.sink.m[4] = 64'h00000007_1FFFFFFF;
+
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "Divisor as Power-of-Two Tests finished", t0_done );
+  end
+  `VC_TEST_CASE_END
+
+  `VC_TEST_SUITE_END( 3 )
 
 endmodule
