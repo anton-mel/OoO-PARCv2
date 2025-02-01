@@ -153,6 +153,33 @@ module tester;
   end
   `VC_TEST_CASE_END
 
-  `VC_TEST_SUITE_END( 2 )
+  //----------------------------------------------------------------------
+  // Test Case 3: "mul: Special Cases"
+  //----------------------------------------------------------------------
+  `VC_TEST_CASE_BEGIN( 3, "mul: Special Cases" )
+  begin
+    // T1: Square of 0x12345678
+    // 0x12345678 * 0x12345678 = 0x014B66DC5B7E3B40 (precomputed)
+    t0.src.m[0] = 67'h0_12345678_12345678;
+    t0.sink.m[0] = 64'h014b66dc_1df4d840;
+
+    // T2: Multiply smallest negative by -1:
+    // 0x80000000 represents -2147483648 and 0xFFFFFFFF represents -1.
+    // Their product should be 2147483648 = 0x0000000080000000.
+    t0.src.m[1] = 67'h0_80000000_FFFFFFFF;
+    t0.sink.m[1] = 64'h00000000_80000000;
+
+    // T3: Multiply 0x40000000 by 0x40000000.
+    // Since 0x40000000 = 2^30, (2^30)*(2^30) = 2^60 = 0x1000000000000000.
+    t0.src.m[2] = 67'h0_40000000_40000000;
+    t0.sink.m[2] = 64'h1000000000000000;
+
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "mul: Special Cases finished", t0_done );
+  end
+  `VC_TEST_CASE_END
+
+  `VC_TEST_SUITE_END( 3 )
 
 endmodule
