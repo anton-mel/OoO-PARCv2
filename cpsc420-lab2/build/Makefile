@@ -57,9 +57,9 @@ tests = \
   parcv1-addu.vmh \
   parcv1-lw.vmh \
   parcv1-sw.vmh \
-  parcv1-bne.vmh \
   parcv1-jal.vmh \
   parcv1-jr.vmh \
+  parcv1-bne.vmh \
   parcv2-andi.vmh \
   parcv2-xori.vmh \
   parcv2-sll.vmh \
@@ -88,12 +88,13 @@ tests = \
   parcv2-beq.vmh \
   parcv2-blez.vmh \
   parcv2-bgtz.vmh \
+  parcv2-bltz.vmh \
   parcv2-bgez.vmh \
   parcv2-mul.vmh \
   parcv2-div.vmh \
   parcv2-divu.vmh \
   parcv2-rem.vmh \
-  parcv2-remu.vmh \
+  parcv2-remu.vmh
 
 pv2stall_rtl_sim = pv2stall-sim
 pv2stall_rtl_rand_sim = pv2stall-randdelay-sim
