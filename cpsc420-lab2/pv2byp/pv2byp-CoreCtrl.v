@@ -52,6 +52,11 @@ module parc_CoreCtrl
   output wire       stall_Mhl,
   output wire       stall_Whl,
 
+  // Bypass Control Signals
+
+  output  [1:0]     op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
+  output  [1:0]     op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
+
   // Control Signals (dpath->ctrl)
 
   input             branch_cond_eq_Xhl,
@@ -62,6 +67,41 @@ module parc_CoreCtrl
   // CP0 Status
   output reg [31:0] cp0_status
 );
+
+  //----------------------------------------------------------------------
+  // Bypass Control Signals
+  //----------------------------------------------------------------------
+
+  // Helper signals for bypassing
+  wire rs_X_byp_Dhl;  // Bypass rs from X stage
+  wire rs_M_byp_Dhl;  // Bypass rs from M stage
+  wire rs_W_byp_Dhl;  // Bypass rs from W stage
+
+  wire rt_X_byp_Dhl;  // Bypass rt from X stage
+  wire rt_M_byp_Dhl;  // Bypass rt from M stage
+  wire rt_W_byp_Dhl;  // Bypass rt from W stage
+
+  // Bypass Mux Select Signals
+  assign op0_byp_mux_sel_Dhl = rs_X_byp_Dhl ? 2'b01 : 
+                               rs_M_byp_Dhl ? 2'b10 : 
+                               rs_W_byp_Dhl ? 2'b11 : 
+                               2'b00;  // Default to register file
+
+  assign op1_byp_mux_sel_Dhl = rt_X_byp_Dhl ? 2'b01 : 
+                               rt_M_byp_Dhl ? 2'b10 : 
+                               rt_W_byp_Dhl ? 2'b11 : 
+                               2'b00;  // Default to register file
+
+  //----------------------------------------------------------------------
+  // Stall Logic for Load-Use Hazards
+  //----------------------------------------------------------------------
+
+  // Detect load-use hazard
+  wire load_use_hazard_Dhl = (inst_val_Dhl && inst_val_Xhl && dmemreq_val_Xhl && 
+                              ((rs_addr_Dhl == rf_waddr_Xhl) || (rt_addr_Dhl == rf_waddr_Xhl)));
+
+  // Stall for load-use hazards
+  assign stall_Dhl = load_use_hazard_Dhl;
 
   //----------------------------------------------------------------------
   // PC Stage: Instruction Memory Request
