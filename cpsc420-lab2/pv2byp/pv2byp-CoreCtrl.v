@@ -69,39 +69,43 @@ module parc_CoreCtrl
 );
 
   //----------------------------------------------------------------------
-  // Bypass Control Signals
+  // Bypass Control – Helper Signals
   //----------------------------------------------------------------------
 
-  // Helper signals for bypassing
-  wire rs_X_byp_Dhl;  // Bypass rs from X stage
-  wire rs_M_byp_Dhl;  // Bypass rs from M stage
-  wire rs_W_byp_Dhl;  // Bypass rs from W stage
+  wire rs_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rs_en_Dhl &&
+                      rf_wen_Xhl && (rs_addr_Dhl == rf_waddr_Xhl) &&
+                      (rf_waddr_Xhl != 5'd0);
 
-  wire rt_X_byp_Dhl;  // Bypass rt from X stage
-  wire rt_M_byp_Dhl;  // Bypass rt from M stage
-  wire rt_W_byp_Dhl;  // Bypass rt from W stage
+  wire rs_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rs_en_Dhl &&
+                      rf_wen_Mhl && (rs_addr_Dhl == rf_waddr_Mhl) &&
+                      (rf_waddr_Mhl != 5'd0);
 
-  // Bypass Mux Select Signals
-  assign op0_byp_mux_sel_Dhl = rs_X_byp_Dhl ? 2'b01 : 
-                               rs_M_byp_Dhl ? 2'b10 : 
-                               rs_W_byp_Dhl ? 2'b11 : 
-                               2'b00;  // Default to register file
+  wire rs_W_byp_Dhl = inst_val_Dhl && inst_val_Whl && rs_en_Dhl &&
+                      rf_wen_Whl && (rs_addr_Dhl == rf_waddr_Whl) &&
+                      (rf_waddr_Whl != 5'd0);
 
-  assign op1_byp_mux_sel_Dhl = rt_X_byp_Dhl ? 2'b01 : 
-                               rt_M_byp_Dhl ? 2'b10 : 
-                               rt_W_byp_Dhl ? 2'b11 : 
-                               2'b00;  // Default to register file
+  wire rt_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rt_en_Dhl &&
+                      rf_wen_Xhl && (rt_addr_Dhl == rf_waddr_Xhl) &&
+                      (rf_waddr_Xhl != 5'd0);
 
-  //----------------------------------------------------------------------
-  // Stall Logic for Load-Use Hazards
-  //----------------------------------------------------------------------
+  wire rt_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rt_en_Dhl &&
+                      rf_wen_Mhl && (rt_addr_Dhl == rf_waddr_Mhl) &&
+                      (rf_waddr_Mhl != 5'd0);
 
-  // Detect load-use hazard
-  wire load_use_hazard_Dhl = (inst_val_Dhl && inst_val_Xhl && dmemreq_val_Xhl && 
-                              ((rs_addr_Dhl == rf_waddr_Xhl) || (rt_addr_Dhl == rf_waddr_Xhl)));
+  wire rt_W_byp_Dhl = inst_val_Dhl && inst_val_Whl && rt_en_Dhl &&
+                      rf_wen_Whl && (rt_addr_Dhl == rf_waddr_Whl) &&
+                      (rf_waddr_Whl != 5'd0);
 
-  // Stall for load-use hazards
-  assign stall_Dhl = load_use_hazard_Dhl;
+  // Bypass mux select signals: Priority order: X > M > W
+  assign op0_byp_mux_sel_Dhl = rs_X_byp_Dhl ? 2'b01 :
+                              rs_M_byp_Dhl ? 2'b10 :
+                              rs_W_byp_Dhl ? 2'b11 :
+                              2'b00;  // 00 → use register file
+
+  assign op1_byp_mux_sel_Dhl = rt_X_byp_Dhl ? 2'b01 :
+                              rt_M_byp_Dhl ? 2'b10 :
+                              rt_W_byp_Dhl ? 2'b11 :
+                              2'b00;  // 00 → use register file
 
   //----------------------------------------------------------------------
   // PC Stage: Instruction Memory Request
