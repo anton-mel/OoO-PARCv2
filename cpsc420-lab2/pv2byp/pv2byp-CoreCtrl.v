@@ -78,11 +78,11 @@ module parc_CoreCtrl
   // When checking for bypassing from X, do not bypass if the X-stage
   // instruction is a load (its result isn’t ready until after memory access).
   wire rs_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rs_en_Dhl &&
-                      rf_wen_Xhl && ~is_load_Xhl && (rs_addr_Dhl == rf_waddr_Xhl) &&
+                      rf_wen_Xhl && ~is_load_Dhl && (rs_addr_Dhl == rf_waddr_Xhl) &&
                       (rf_waddr_Xhl != 5'd0);
 
   wire rt_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rt_en_Dhl &&
-                      rf_wen_Xhl && ~is_load_Xhl && (rt_addr_Dhl == rf_waddr_Xhl) &&
+                      rf_wen_Xhl && ~is_load_Dhl && (rt_addr_Dhl == rf_waddr_Xhl) &&
                       (rf_waddr_Xhl != 5'd0);
 
   // Here bypass from the M stage remains unchanged.
@@ -580,7 +580,7 @@ module parc_CoreCtrl
 
   // Instead use load–Use Hazard: if D depends on a load in X.
 
-  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Xhl && is_load_Xhl &&
+  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Xhl && is_load_Dhl &&
                             (
                               (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0)) ||
                               (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0))
@@ -598,17 +598,6 @@ module parc_CoreCtrl
   wire bubble_next_Dhl = ( !bubble_sel_Dhl ) ? bubble_Dhl
                        : ( bubble_sel_Dhl )  ? 1'b1
                        :                       1'bx;
-
-  //----------------------------------------------------------------------
-  // Pipeline Register: Propagate is_load from Decode to X stage.
-  //----------------------------------------------------------------------
-
-  always @(posedge clk) begin
-    if (!stall_Xhl) begin
-      // Other signals would also be pipelined here.
-      is_load_Xhl <= is_load_Dhl;
-    end
-  end
 
   //----------------------------------------------------------------------
   // X <- D
