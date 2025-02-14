@@ -89,11 +89,11 @@ module parc_CoreCtrl
   // Here bypass from the M stage remains unchanged.
   wire rs_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rs_en_Dhl &&
                       rf_wen_Mhl && (rs_addr_Dhl == rf_waddr_Mhl) &&
-                      (rf_waddr_Mhl != 5'd0) && ~is_load_Mhl;
+                      (rf_waddr_Mhl != 5'd0);
 
   wire rt_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rt_en_Dhl &&
                       rf_wen_Mhl && (rt_addr_Dhl == rf_waddr_Mhl) &&
-                      (rf_waddr_Mhl != 5'd0) && ~is_load_Mhl;
+                      (rf_waddr_Mhl != 5'd0);
 
   // Bypass from the W stage.
   wire rs_W_byp_Dhl = inst_val_Dhl && inst_val_Whl && rs_en_Dhl &&
@@ -459,7 +459,7 @@ module parc_CoreCtrl
       `PARC_INST_MSG_REM     :cs={ y,  n,    br_none, pm_p,   am_rdat, y, bm_rdat, y, alu_x,    md_rem,  y, mdm_u, em_md,  nr,  ml_x, dmm_x,  wm_alu, y,  rd, n   };
       `PARC_INST_MSG_REMU    :cs={ y,  n,    br_none, pm_p,   am_rdat, y, bm_rdat, y, alu_x,    md_remu, y, mdm_u, em_md,  nr,  ml_x, dmm_x,  wm_alu, y,  rd, n   };
     endcase
-
+    
   end
 
   //---------------------------------------------------------------
@@ -557,44 +557,42 @@ module parc_CoreCtrl
 
   wire stall_muldiv_Dhl = ( muldivreq_val_Dhl && inst_val_Dhl && !muldivreq_rdy );
 
-  //----------------------------------------------------------------------
-  // No longer need this, we do not want to stall for all, only for load.
-  // Stall for data hazards if either of the operand read addresses are
-  // the same as the write addresses of instruction later in the pipeline
-  // wire stall_hazard_Dhl   = inst_val_Dhl && (
-  //                           ( rs_en_Dhl && inst_val_Xhl && rf_wen_Xhl
-  //                             && ( rs_addr_Dhl == rf_waddr_Xhl )
-  //                             && ( rf_waddr_Xhl != 5'd0 ) )
-  //                        || ( rs_en_Dhl && inst_val_Mhl && rf_wen_Mhl
-  //                             && ( rs_addr_Dhl == rf_waddr_Mhl )
-  //                             && ( rf_waddr_Mhl != 5'd0 ) )
-  //                        || ( rs_en_Dhl && inst_val_Whl && rf_wen_Whl
-  //                             && ( rs_addr_Dhl == rf_waddr_Whl )
-  //                             && ( rf_waddr_Whl != 5'd0 ) )
-  //                        || ( rt_en_Dhl && inst_val_Xhl && rf_wen_Xhl
-  //                             && ( rt_addr_Dhl == rf_waddr_Xhl )
-  //                             && ( rf_waddr_Xhl != 5'd0 ) )
-  //                        || ( rt_en_Dhl && inst_val_Mhl && rf_wen_Mhl
-  //                             && ( rt_addr_Dhl == rf_waddr_Mhl )
-  //                             && ( rf_waddr_Mhl != 5'd0 ) )
-  //                        || ( rt_en_Dhl && inst_val_Whl && rf_wen_Whl
-  //                             && ( rt_addr_Dhl == rf_waddr_Whl )
-  //                             && ( rf_waddr_Whl != 5'd0 ) ) );
-  //----------------------------------------------------------------------
+  // General data hazard stall logic (with bypass awareness)
+
+  wire stall_hazard_Dhl   = inst_val_Dhl && (
+                            ( rs_en_Dhl && inst_val_Xhl && rf_wen_Xhl
+                              && ( rs_addr_Dhl == rf_waddr_Xhl )
+                              && ( rf_waddr_Xhl != 5'd0 ) )
+                         || ( rs_en_Dhl && inst_val_Mhl && rf_wen_Mhl
+                              && ( rs_addr_Dhl == rf_waddr_Mhl )
+                              && ( rf_waddr_Mhl != 5'd0 ) )
+                         || ( rs_en_Dhl && inst_val_Whl && rf_wen_Whl
+                              && ( rs_addr_Dhl == rf_waddr_Whl )
+                              && ( rf_waddr_Whl != 5'd0 ) )
+                         || ( rt_en_Dhl && inst_val_Xhl && rf_wen_Xhl
+                              && ( rt_addr_Dhl == rf_waddr_Xhl )
+                              && ( rf_waddr_Xhl != 5'd0 ) )
+                         || ( rt_en_Dhl && inst_val_Mhl && rf_wen_Mhl
+                              && ( rt_addr_Dhl == rf_waddr_Mhl )
+                              && ( rf_waddr_Mhl != 5'd0 ) )
+                         || ( rt_en_Dhl && inst_val_Whl && rf_wen_Whl
+                              && ( rt_addr_Dhl == rf_waddr_Whl )
+                              && ( rf_waddr_Whl != 5'd0 ) ) );
 
   // Instead use load–Use Hazard: if D depends on a load in X.
 
-  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Mhl && is_load_Mhl && 
+  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Xhl && is_load_Xhl &&
                             (
-                              (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Mhl) && (rf_waddr_Mhl != 5'd0)) ||
-                              (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Mhl) && (rf_waddr_Mhl != 5'd0))
+                              (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0)) ||
+                              (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0))
                             );
 
   // Aggregate Stall Signal
 
   assign stall_Dhl = ( stall_Xhl
                   ||   stall_muldiv_Dhl
-                  ||   stall_load_use_Dhl );
+                  ||   stall_load_use_Dhl 
+                  ||   stall_hazard_Dhl);
 
   // Next bubble bit
 
