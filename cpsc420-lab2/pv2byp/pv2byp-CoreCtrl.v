@@ -52,6 +52,11 @@ module parc_CoreCtrl
   output wire       stall_Mhl,
   output wire       stall_Whl,
 
+  // Bypass Control Signals
+
+  output  [1:0]     op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
+  output  [1:0]     op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
+
   // Control Signals (dpath->ctrl)
 
   input             branch_cond_eq_Xhl,
@@ -62,6 +67,53 @@ module parc_CoreCtrl
   // CP0 Status
   output reg [31:0] cp0_status
 );
+
+  wire is_load_Dhl;
+  reg is_load_Xhl;
+  reg is_load_Mhl;
+
+  //----------------------------------------------------------------------
+  // Bypass Control – Helper Signals
+  //----------------------------------------------------------------------
+
+  // When checking for bypassing from X, do not bypass if the X-stage
+  // instruction is a load (its result isn’t ready until after memory access).
+  wire rs_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rs_en_Dhl &&
+                      rf_wen_Xhl && ~is_load_Xhl && (rs_addr_Dhl == rf_waddr_Xhl) &&
+                      (rf_waddr_Xhl != 5'd0);
+
+  wire rt_X_byp_Dhl = inst_val_Dhl && inst_val_Xhl && rt_en_Dhl &&
+                      rf_wen_Xhl && ~is_load_Xhl && (rt_addr_Dhl == rf_waddr_Xhl) &&
+                      (rf_waddr_Xhl != 5'd0);
+
+  // Here bypass from the M stage remains unchanged.
+  wire rs_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rs_en_Dhl &&
+                      rf_wen_Mhl && (rs_addr_Dhl == rf_waddr_Mhl) &&
+                      (rf_waddr_Mhl != 5'd0);
+
+  wire rt_M_byp_Dhl = inst_val_Dhl && inst_val_Mhl && rt_en_Dhl &&
+                      rf_wen_Mhl && (rt_addr_Dhl == rf_waddr_Mhl) &&
+                      (rf_waddr_Mhl != 5'd0);
+
+  // Bypass from the W stage.
+  wire rs_W_byp_Dhl = inst_val_Dhl && inst_val_Whl && rs_en_Dhl &&
+                      rf_wen_Whl && (rs_addr_Dhl == rf_waddr_Whl) &&
+                      (rf_waddr_Whl != 5'd0);
+
+  wire rt_W_byp_Dhl = inst_val_Dhl && inst_val_Whl && rt_en_Dhl &&
+                      rf_wen_Whl && (rt_addr_Dhl == rf_waddr_Whl) &&
+                      (rf_waddr_Whl != 5'd0);
+
+  // Bypass mux select signals: Priority order: X > M > W
+  assign op0_byp_mux_sel_Dhl = rs_X_byp_Dhl ? 2'b01 :
+                               rs_M_byp_Dhl ? 2'b10 :
+                               rs_W_byp_Dhl ? 2'b11 :
+                               2'b00;  // 00 → use register file
+
+  assign op1_byp_mux_sel_Dhl = rt_X_byp_Dhl ? 2'b01 :
+                               rt_M_byp_Dhl ? 2'b10 :
+                               rt_W_byp_Dhl ? 2'b11 :
+                               2'b00;  // 00 → use register file
 
   //----------------------------------------------------------------------
   // PC Stage: Instruction Memory Request
@@ -407,8 +459,22 @@ module parc_CoreCtrl
       `PARC_INST_MSG_REM     :cs={ y,  n,    br_none, pm_p,   am_rdat, y, bm_rdat, y, alu_x,    md_rem,  y, mdm_u, em_md,  nr,  ml_x, dmm_x,  wm_alu, y,  rd, n   };
       `PARC_INST_MSG_REMU    :cs={ y,  n,    br_none, pm_p,   am_rdat, y, bm_rdat, y, alu_x,    md_remu, y, mdm_u, em_md,  nr,  ml_x, dmm_x,  wm_alu, y,  rd, n   };
     endcase
-
+    
   end
+
+  //---------------------------------------------------------------
+  // [CHECK HERE] Determine if the current instruction is a load
+  assign is_load_Dhl = (cs[`PARC_INST_MSG_MEM_REQ] == ld);
+
+  always @(posedge clk) begin
+    if (!stall_Dhl) begin
+      is_load_Xhl <= is_load_Dhl;
+    end
+    if (!stall_Xhl) begin
+      is_load_Mhl <= is_load_Xhl;
+    end
+  end
+  //---------------------------------------------------------------
 
   // Jump and Branch Controls
 
@@ -491,8 +557,7 @@ module parc_CoreCtrl
 
   wire stall_muldiv_Dhl = ( muldivreq_val_Dhl && inst_val_Dhl && !muldivreq_rdy );
 
-  // Stall for data hazards if either of the operand read addresses are
-  // the same as the write addresses of instruction later in the pipeline
+  // General data hazard stall logic (with bypass awareness)
 
   wire stall_hazard_Dhl   = inst_val_Dhl && (
                             ( rs_en_Dhl && inst_val_Xhl && rf_wen_Xhl
@@ -514,11 +579,20 @@ module parc_CoreCtrl
                               && ( rt_addr_Dhl == rf_waddr_Whl )
                               && ( rf_waddr_Whl != 5'd0 ) ) );
 
+  // Instead use load–Use Hazard: if D depends on a load in X.
+
+  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Xhl && is_load_Xhl &&
+                            (
+                              (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0)) ||
+                              (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0))
+                            );
+
   // Aggregate Stall Signal
 
   assign stall_Dhl = ( stall_Xhl
                   ||   stall_muldiv_Dhl
-                  ||   stall_hazard_Dhl );
+                  ||   stall_load_use_Dhl 
+                  ||   stall_hazard_Dhl);
 
   // Next bubble bit
 
