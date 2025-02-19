@@ -9,3 +9,4 @@ This lab focuses on designing and implementing an iterative integer multiply/div
 In this lab, we extend a pipelined PARCv1 processor into a full-featured PARCv2 design by implementing key performance enhancements. The primary objectives include upgrading the control unit to support the complete PARCv2 instruction set, incorporating bypassing logic to mitigate pipeline stalls, and integrating a pipelined multiplier/divider (MulDiv) unit. These enhancements collectively enable the processor to execute a broader range of instructions with improved efficiency by reducing cycle counts and minimizing the performance penalties associated with data hazards. This work not only deepens our understanding of advanced pipelining strategies but also lays the ground for further optimizations in modern processors.
 
 ![Bypassing Data Path Diagram](static/bypassing_dpath.png)
+![MulDiv & Bypassing Data Path Diagram](static/muldiv_byp_dpath.png)
