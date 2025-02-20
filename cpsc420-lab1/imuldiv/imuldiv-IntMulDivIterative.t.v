@@ -167,10 +167,56 @@ module tester;
   end
   `VC_TEST_CASE_END
 
-   //---------------------------------------------------------------------
-   // Add More Test Cases Here
-   //---------------------------------------------------------------------
+  //---------------------------------------------------------------------
+  // My Test Case 4: Multiplication Edge Cases (mul edge cases)
+  //---------------------------------------------------------------------
+  
+  `VC_TEST_CASE_BEGIN( 4, "mul edge cases" )
+  begin
+    // a) Most negative * Most negative: 0x80000000 * 0x80000000
+    t0.src.m[0] = 67'h0_80000000_80000000; t0.sink.m[0] = 64'h4000000000000000;
+    // b) Maximum positive * Maximum positive: 0x7fffffff * 0x7fffffff
+    t0.src.m[1] = 67'h0_7fffffff_7fffffff; t0.sink.m[1] = 64'h3FFFFFFF00000001;
+    // c) -1 * 2: 0xffffffff * 0x00000002
+    t0.src.m[2] = 67'h0_ffffffff_00000002; t0.sink.m[2] = 64'hfffffffffffffffe;
+    // d) Most negative * Maximum positive: 0x80000000 * 0x7fffffff
+    t0.src.m[3] = 67'h0_80000000_7fffffff; t0.sink.m[3] = 64'hC000000080000000;
 
-  `VC_TEST_SUITE_END( 3 /* replace with number of test cases */ )
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "Is sink finished?", t0_done )
+  end
+  `VC_TEST_CASE_END
+
+  //---------------------------------------------------------------------
+  // My Test Case 5: Division Edge Cases (div edge cases)
+  //---------------------------------------------------------------------
+  `VC_TEST_CASE_BEGIN( 5, "div edge cases" )
+  begin
+    // a) Division overflow case: (-2147483648 / -1)
+    //    In RISC-V, this case returns the dividend (0x80000000) as the quotient.
+    t0.src.m[0] = 65'h1_80000000_ffffffff; t0.sink.m[0] = 64'h00000000_80000000;
+    // b) Negative dividend, positive divisor: (-12345678 / 3)
+    //    -12345678 in 32-bit two's complement is 0xFF439EB2.
+    //    12345678/3 = 4115226 --> Quotient = -4115226 = 0xFFC134E6 (two's complement), Remainder = 0.
+    t0.src.m[1] = 65'h1_FF439EB2_00000003; t0.sink.m[1] = 64'h00000000_FFC134E6;
+    // c) Positive dividend, negative divisor: (12345678 / -3)
+    //    12345678 in hex is 0x00BC614E. Dividing by -3 (0xFFFFFFFD) gives the same quotient as above.
+    t0.src.m[2] = 65'h1_00BC614E_FFFFFFFD; t0.sink.m[2] = 64'h00000000_FFC134E6;
+    // d) Division with nonzero remainder: (-10 / 3)
+    //    -10 / 3 = -3 remainder -1.
+    //    -3 in two's complement is 0xFFFFFFFD and -1 is 0xFFFFFFFF.
+    t0.src.m[3] = 65'h1_FFFFFFF6_00000003; t0.sink.m[3] = 64'hFFFFFFFF_FFFFFFFD;
+
+    #5;   t0_reset = 1'b1;
+    #20;  t0_reset = 1'b0;
+    #10000; `VC_TEST_CHECK( "Is sink finished?", t0_done )
+  end
+  `VC_TEST_CASE_END
+
+  //---------------------------------------------------------------------
+  // End of Test Cases
+  //---------------------------------------------------------------------
+  `VC_TEST_SUITE_END( 5 ) // Updated to 5 test cases
 
 endmodule
