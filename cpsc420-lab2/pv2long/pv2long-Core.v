@@ -75,6 +75,10 @@ module parc_Core
   wire        stall_Mhl;
   wire        stall_Whl;
 
+  // Bypass Control Signals
+  wire  [1:0] op0_byp_mux_sel_Dhl;
+  wire  [1:0] op1_byp_mux_sel_Dhl;
+
   wire        branch_cond_eq_Xhl;
   wire        branch_cond_zero_Xhl;
   wire        branch_cond_neg_Xhl;
@@ -172,6 +176,11 @@ module parc_Core
     .stall_Mhl              (stall_Mhl),
     .stall_Whl              (stall_Whl),
 
+    // Bypass Control Signals
+
+    .op0_byp_mux_sel_Dhl    (op0_byp_mux_sel_Dhl),
+    .op1_byp_mux_sel_Dhl    (op1_byp_mux_sel_Dhl),
+
     // Control Signals (dpath->ctrl)
 
     .branch_cond_eq_Xhl     (branch_cond_eq_Xhl),
@@ -228,6 +237,11 @@ module parc_Core
     .stall_Xhl               (stall_Xhl),
     .stall_Mhl               (stall_Mhl),
     .stall_Whl               (stall_Whl),
+
+    // Bypass Control Signals
+
+    .op0_byp_mux_sel_Dhl    (op0_byp_mux_sel_Dhl),
+    .op1_byp_mux_sel_Dhl    (op1_byp_mux_sel_Dhl),
 
     // Control Signals (dpath->ctrl)
 

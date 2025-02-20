@@ -51,6 +51,11 @@ module parc_CoreDpath
   input         stall_Mhl,
   input         stall_Whl,
 
+  // Bypass Control Signals
+
+  input   [1:0] op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
+  input   [1:0] op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
+
   // Control Signals (dpath->ctrl)
 
   output        branch_cond_eq_Xhl,
@@ -58,6 +63,33 @@ module parc_CoreDpath
   output        branch_cond_neg_Xhl,
   output [31:0] proc2cop_data_Whl
 );
+
+  //--------------------------------------------------------------------
+  // Bypass Muxes
+  //--------------------------------------------------------------------
+
+  // Bypass values from X, M, and W stages
+  wire [31:0] rs_byp_X_Dhl = alu_out_Xhl;  // Bypass value for rs from X stage
+  wire [31:0] rs_byp_M_Dhl = execute_mux_out_Mhl;  // Bypass value for rs from M stage
+  wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rs from W stage
+
+  wire [31:0] rt_byp_X_Dhl = alu_out_Xhl;  // Bypass value for rt from X stage
+  wire [31:0] rt_byp_M_Dhl = execute_mux_out_Mhl;  // Bypass value for rt from M stage
+  wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rt from W stage
+
+  // Bypass mux for op0 (rs)
+  wire [31:0] op0_byp_mux_out_Dhl
+    = ( op0_byp_mux_sel_Dhl == 2'b01 ) ? rs_byp_X_Dhl
+    : ( op0_byp_mux_sel_Dhl == 2'b10 ) ? rs_byp_M_Dhl
+    : ( op0_byp_mux_sel_Dhl == 2'b11 ) ? rs_byp_W_Dhl
+    : rf_rdata0_Dhl;  // Default to register file
+
+  // Bypass mux for op1 (rt)
+  wire [31:0] op1_byp_mux_out_Dhl
+    = ( op1_byp_mux_sel_Dhl == 2'b01 ) ? rt_byp_X_Dhl
+    : ( op1_byp_mux_sel_Dhl == 2'b10 ) ? rt_byp_M_Dhl
+    : ( op1_byp_mux_sel_Dhl == 2'b11 ) ? rt_byp_W_Dhl
+    : rf_rdata1_Dhl;  // Default to register file
 
   //--------------------------------------------------------------------
   // PC Logic Stage
@@ -184,7 +216,7 @@ module parc_CoreDpath
   // Operand 0 mux
 
   wire [31:0] op0_mux_out_Dhl
-    = ( op0_mux_sel_Dhl == 2'd0 ) ? rf_rdata0_Dhl
+    = ( op0_mux_sel_Dhl == 2'd0 ) ? op0_byp_mux_out_Dhl // Use bypassed value
     : ( op0_mux_sel_Dhl == 2'd1 ) ? shamt_Dhl
     : ( op0_mux_sel_Dhl == 2'd2 ) ? const16
     : ( op0_mux_sel_Dhl == 2'd3 ) ? const0
@@ -193,7 +225,7 @@ module parc_CoreDpath
   // Operand 1 mux
 
   wire [31:0] op1_mux_out_Dhl
-    = ( op1_mux_sel_Dhl == 3'd0 ) ? rf_rdata1_Dhl
+    = ( op1_mux_sel_Dhl == 3'd0 ) ? op1_byp_mux_out_Dhl // Use bypassed value
     : ( op1_mux_sel_Dhl == 3'd1 ) ? imm_zext_Dhl
     : ( op1_mux_sel_Dhl == 3'd2 ) ? imm_sext_Dhl
     : ( op1_mux_sel_Dhl == 3'd3 ) ? pc_plus4_Dhl
@@ -218,8 +250,8 @@ module parc_CoreDpath
     if( !stall_Xhl ) begin
       pc_Xhl          <= pc_Dhl;
       branch_targ_Xhl <= branch_targ_Dhl;
-      op0_mux_out_Xhl <= op0_mux_out_Dhl;
-      op1_mux_out_Xhl <= op1_mux_out_Dhl;
+      op0_mux_out_Xhl <= op0_mux_out_Dhl; // Use bypassed value
+      op1_mux_out_Xhl <= op1_mux_out_Dhl; // Use bypassed value
       wdata_Xhl       <= wdata_Dhl;
     end
   end
@@ -364,12 +396,12 @@ module parc_CoreDpath
   always @ ( posedge clk ) begin
     pc_debug <= pc_Whl;
   end
-  
+
   //----------------------------------------------------------------------
   // Submodules
   //----------------------------------------------------------------------
-  
-  // Address Generation
+
+  // Address Generation 
 
   parc_InstMsgFromBits inst_msg_from_bits
   (
@@ -420,11 +452,9 @@ module parc_CoreDpath
     .muldivreq_msg_b       (op1_mux_out_Xhl),
     .muldivreq_val         (muldivreq_val),
     .muldivreq_rdy         (muldivreq_rdy),
-    //Note that this probably will come out in a different pipeline stage than X
     .muldivresp_msg_result (muldivresp_msg_result_Xhl),
     .muldivresp_val        (muldivresp_val),
     .muldivresp_rdy        (muldivresp_rdy)
-    //Note these stall signals should be hooked to something!!!
   );
 
 endmodule
