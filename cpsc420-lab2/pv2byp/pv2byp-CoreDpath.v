@@ -69,11 +69,11 @@ module parc_CoreDpath
   //--------------------------------------------------------------------
 
   // Bypass values from X, M, and W stages
-  wire [31:0] rs_byp_X_Dhl = alu_out_Xhl;  // Bypass value for rs from X stage
+  wire [31:0] rs_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rs from X stage
   wire [31:0] rs_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rs from M stage
   wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rs from W stage
 
-  wire [31:0] rt_byp_X_Dhl = alu_out_Xhl;  // Bypass value for rt from X stage
+  wire [31:0] rt_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rt from X stage
   wire [31:0] rt_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rt from M stage
   wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rt from W stage
 
