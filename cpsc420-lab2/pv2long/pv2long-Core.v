@@ -56,13 +56,13 @@ module parc_Core
   wire  [2:0] op1_mux_sel_Dhl;
   wire [31:0] inst_Dhl;
   wire  [3:0] alu_fn_Xhl;
-  wire  [2:0] muldivreq_msg_fn_Xhl;
+  wire  [2:0] muldivreq_msg_fn_Dhl;
   wire        muldivreq_val;
   wire        muldivreq_rdy;
   wire        muldivresp_val;
   wire        muldivresp_rdy;
-  wire        muldiv_mux_sel_Xhl;
-  wire        execute_mux_sel_Xhl;
+  wire        muldiv_mux_sel_PWhl;
+  wire        execute_mux_sel_PWhl;
   wire  [2:0] dmemresp_mux_sel_Mhl;
   wire        dmemresp_queue_en_Mhl;
   wire        dmemresp_queue_val_Mhl;
@@ -73,11 +73,13 @@ module parc_Core
   wire        stall_Dhl;
   wire        stall_Xhl;
   wire        stall_Mhl;
+  wire        stall_PMhl;
+  wire        stall_PWhl;
   wire        stall_Whl;
 
   // Bypass Control Signals
-  wire  [1:0] op0_byp_mux_sel_Dhl;
-  wire  [1:0] op1_byp_mux_sel_Dhl;
+  wire  [2:0] op0_byp_mux_sel_Dhl;
+  wire  [2:0] op1_byp_mux_sel_Dhl;
 
   wire        branch_cond_eq_Xhl;
   wire        branch_cond_zero_Xhl;
@@ -157,13 +159,13 @@ module parc_Core
     .op1_mux_sel_Dhl        (op1_mux_sel_Dhl),
     .inst_Dhl               (inst_Dhl),
     .alu_fn_Xhl             (alu_fn_Xhl),
-    .muldivreq_msg_fn_Xhl   (muldivreq_msg_fn_Xhl),
+    .muldivreq_msg_fn_Dhl   (muldivreq_msg_fn_Dhl),
     .muldivreq_val          (muldivreq_val),
     .muldivreq_rdy          (muldivreq_rdy),
     .muldivresp_val         (muldivresp_val),
     .muldivresp_rdy         (muldivresp_rdy),
-    .muldiv_mux_sel_Xhl     (muldiv_mux_sel_Xhl),
-    .execute_mux_sel_Xhl    (execute_mux_sel_Xhl),
+    .muldiv_mux_sel_PWhl    (muldiv_mux_sel_PWhl),
+    .execute_mux_sel_PWhl   (execute_mux_sel_PWhl),
     .dmemresp_mux_sel_Mhl   (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl  (dmemresp_queue_en_Mhl),
     .dmemresp_queue_val_Mhl (dmemresp_queue_val_Mhl),
@@ -174,6 +176,8 @@ module parc_Core
     .stall_Dhl              (stall_Dhl),
     .stall_Xhl              (stall_Xhl),
     .stall_Mhl              (stall_Mhl),
+    .stall_PMhl             (stall_PMhl),
+    .stall_PWhl             (stall_PWhl),
     .stall_Whl              (stall_Whl),
 
     // Bypass Control Signals
@@ -219,13 +223,13 @@ module parc_Core
     .op1_mux_sel_Dhl         (op1_mux_sel_Dhl),
     .inst_Dhl                (inst_Dhl),
     .alu_fn_Xhl              (alu_fn_Xhl),
-    .muldivreq_msg_fn_Xhl    (muldivreq_msg_fn_Xhl),
+    .muldivreq_msg_fn_Dhl    (muldivreq_msg_fn_Dhl),
     .muldivreq_val           (muldivreq_val),
     .muldivreq_rdy           (muldivreq_rdy),
     .muldivresp_val          (muldivresp_val),
     .muldivresp_rdy          (muldivresp_rdy),
-    .muldiv_mux_sel_Xhl      (muldiv_mux_sel_Xhl),
-    .execute_mux_sel_Xhl     (execute_mux_sel_Xhl),
+    .muldiv_mux_sel_PWhl     (muldiv_mux_sel_PWhl),
+    .execute_mux_sel_PWhl    (execute_mux_sel_PWhl),
     .dmemresp_mux_sel_Mhl    (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl   (dmemresp_queue_en_Mhl),
     .dmemresp_queue_val_Mhl  (dmemresp_queue_val_Mhl),
@@ -236,6 +240,8 @@ module parc_Core
     .stall_Dhl               (stall_Dhl),
     .stall_Xhl               (stall_Xhl),
     .stall_Mhl               (stall_Mhl),
+    .stall_PMhl              (stall_PMhl),
+    .stall_PWhl              (stall_PWhl),
     .stall_Whl               (stall_Whl),
 
     // Bypass Control Signals
