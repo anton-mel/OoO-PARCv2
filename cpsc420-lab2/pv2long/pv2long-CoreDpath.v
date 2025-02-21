@@ -5,7 +5,7 @@
 `ifndef PARC_CORE_DPATH_V
 `define PARC_CORE_DPATH_V
 
-`include "imuldiv-IntMulDivIterative.v"
+`include "pv2long-CoreDpathPipeMulDiv.v"
 `include "pv2long-InstMsg.v"
 `include "pv2long-CoreDpathAlu.v"
 `include "pv2long-CoreDpathRegfile.v"
@@ -443,7 +443,7 @@ module parc_CoreDpath
 
   // Multiplier/Divider
 
-  imuldiv_IntMulDivIterative imuldiv
+  parc_CoreDpathPipeMulDiv imuldiv
   (
     .clk                   (clk),
     .reset                 (reset),
