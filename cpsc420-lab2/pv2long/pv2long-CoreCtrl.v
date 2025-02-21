@@ -853,7 +853,7 @@ module parc_CoreCtrl
 
   // Aggregate Stall Signal
 
-  assign stall_Mhl = ( stall_imem_Mhl || stall_dmem_Mhl );
+  assign stall_Mhl = ( stall_PMhl || stall_imem_Mhl || stall_dmem_Mhl );
 
   // Next bubble bit
 
