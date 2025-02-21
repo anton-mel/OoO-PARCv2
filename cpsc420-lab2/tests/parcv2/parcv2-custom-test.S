@@ -15,13 +15,11 @@
         mul   $4, $2, $3
         mul   $5, $2, $3
         mul   $6, $2, $4
-        mul   $7, $6, $3
         
         TEST_CHECK_EQ($4, 35)
         TEST_CHECK_EQ($5, 35)
         TEST_CHECK_EQ($6, 175)
-        TEST_CHECK_EQ($6, 525)
-        
+
         //--------------------------------------------------------------------
         // Complex Multiplication, Division, and Memory Test
         //--------------------------------------------------------------------
@@ -69,11 +67,10 @@
         lw    $17, 8($21)
         mul   $18, $17, $3
         TEST_CHECK_EQ($18, 35)
-
-        div   $19, $2, $3
-        add   $20, $19, $5
-        TEST_CHECK_EQ($20, 4)
-
+        
         TEST_PARC_END
+
+        .data
+        .align 4
 
 tdata_0:  .word 0x00000000

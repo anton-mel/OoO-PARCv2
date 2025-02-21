@@ -3,6 +3,7 @@
 #=========================================================================
 
 parcv2_srcs += \
+  parcv2-custom-test.S \
   parcv2-andi.S \
   parcv2-xori.S \
   parcv2-slti.S \
