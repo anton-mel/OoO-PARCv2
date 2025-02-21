@@ -33,13 +33,13 @@ module parc_CoreCtrl
   output  [2:0]     op1_mux_sel_Dhl,
   output [31:0]     inst_Dhl,
   output reg [3:0]  alu_fn_Xhl,
-  output reg [2:0]  muldivreq_msg_fn_Xhl,
+  output reg [2:0]  muldivreq_msg_fn_Dhl,
   output            muldivreq_val,
   input             muldivreq_rdy,
   input             muldivresp_val,
   output            muldivresp_rdy,
   output reg        muldiv_mux_sel_Xhl,
-  output reg        execute_mux_sel_Xhl,
+  output reg        execute_mux_sel_Mhl,
   output reg [2:0]  dmemresp_mux_sel_Mhl,
   output            dmemresp_queue_en_Mhl,
   output reg        dmemresp_queue_val_Mhl,
@@ -50,6 +50,8 @@ module parc_CoreCtrl
   output            stall_Dhl,
   output            stall_Xhl,
   output wire       stall_Mhl,
+  output wire       stall_PMhl,
+  output wire       stall_PWhl,
   output wire       stall_Whl,
 
   // Bypass Control Signals
@@ -502,9 +504,9 @@ module parc_CoreCtrl
 
   wire [3:0] alu_fn_Dhl = cs[`PARC_INST_MSG_ALU_FN];
 
-  // Muldiv Function
+  // Muldiv Function (directly propagated)
 
-  wire [2:0] muldivreq_msg_fn_Dhl = cs[`PARC_INST_MSG_MULDIV_FN];
+  // wire [2:0] muldivreq_msg_fn_Dhl = cs[`PARC_INST_MSG_MULDIV_FN];
 
   // Muldiv Controls
 
@@ -609,13 +611,14 @@ module parc_CoreCtrl
   reg  [2:0] br_sel_Xhl;
   // reg  [3:0] alu_fn_Xhl; (declared as output)
   reg        muldivreq_val_Xhl;
-  // reg  [2:0] muldivreq_msg_fn_Xhl; (declared as output)
+  // reg  [2:0] muldivreq_msg_fn_Dhl; (declared as output)
   // reg        muldiv_mux_sel_Xhl; (declared as output)
-  // reg        execute_mux_sel_Xhl; (declared as output)
+  // reg        execute_mux_sel_Mhl; (declared as output)
   reg        dmemreq_msg_rw_Xhl;
   reg  [1:0] dmemreq_msg_len_Xhl;
   reg        dmemreq_val_Xhl;
   reg  [2:0] dmemresp_mux_sel_Xhl;
+  reg        execute_mux_sel_Xhl;
   reg        wb_mux_sel_Xhl;
   reg        rf_wen_Xhl;
   reg  [4:0] rf_waddr_Xhl;
@@ -631,11 +634,13 @@ module parc_CoreCtrl
       bubble_Xhl <= 1'b1;
     end
     else if( !stall_Xhl ) begin
+      // @anton-mel: would this be correct for the direct propagation
+      muldivreq_msg_fn_Dhl <= cs[`PARC_INST_MSG_MULDIV_FN];
+
       ir_Xhl               <= ir_Dhl;
       br_sel_Xhl           <= br_sel_Dhl;
       alu_fn_Xhl           <= alu_fn_Dhl;
       muldivreq_val_Xhl    <= muldivreq_val_Dhl;
-      muldivreq_msg_fn_Xhl <= muldivreq_msg_fn_Dhl;
       muldiv_mux_sel_Xhl   <= muldiv_mux_sel_Dhl;
       execute_mux_sel_Xhl  <= execute_mux_sel_Dhl;
       dmemreq_msg_rw_Xhl   <= dmemreq_msg_rw_Dhl;
@@ -734,11 +739,12 @@ module parc_CoreCtrl
   reg [31:0] ir_Mhl;
   reg        dmemreq_val_Mhl;
   // reg  [2:0] dmemresp_mux_sel_Mhl; (declared as output)
-  // reg        wb_mux_sel_Mhl; (declared as output)
+  // reg        wb_mux_sel_PWhl; (declared as output)
   reg        rf_wen_Mhl;
   reg  [4:0] rf_waddr_Mhl;
   reg        cp0_wen_Mhl;
   reg  [4:0] cp0_addr_Mhl;
+  reg        wb_mux_sel_Mhl;
 
   reg        bubble_Mhl;
 
@@ -750,6 +756,7 @@ module parc_CoreCtrl
     end
     else if( !stall_Mhl ) begin
       ir_Mhl               <= ir_Xhl;
+      execute_mux_sel_Mhl  <= execute_mux_sel_Xhl;
       dmemresp_mux_sel_Mhl <= dmemresp_mux_sel_Xhl;
       wb_mux_sel_Mhl       <= wb_mux_sel_Xhl;
       rf_wen_Mhl           <= rf_wen_Xhl;
@@ -795,6 +802,43 @@ module parc_CoreCtrl
   wire bubble_next_Mhl = ( !bubble_sel_Mhl ) ? bubble_Mhl
                        : ( bubble_sel_Mhl )  ? 1'b1
                        :                       1'bx;
+
+  //----------------------------------------------------------------------
+  // PM <- M
+  //----------------------------------------------------------------------
+
+  reg [31:0] ir_PMhl;
+  reg        dmemreq_val_PMhl;
+  // reg  [2:0] dmemresp_mux_sel_Mhl; (declared as output)
+  // reg        wb_mux_sel_PWhl; (declared as output)
+  reg        rf_wen_PMhl;
+  reg  [4:0] rf_waddr_PMhl;
+  reg        cp0_wen_PMhl;
+  reg  [4:0] cp0_addr_PMhl;
+  reg        wb_mux_sel_PMhl;
+
+  reg        bubble_PMhl;
+
+  // Pipeline Controls
+
+  always @ ( posedge clk ) begin
+    if ( reset ) begin
+      bubble_PMhl <= 1'b1;
+    end
+    else if( !stall_PMhl ) begin
+      ir_PMhl               <= ir_Xhl;
+      execute_mux_sel_Mhl  <= execute_mux_sel_Xhl;
+      dmemresp_mux_sel_Mhl <= dmemresp_mux_sel_Xhl;
+      wb_mux_sel_Mhl       <= wb_mux_sel_Xhl;
+      rf_wen_Mhl           <= rf_wen_Xhl;
+      rf_waddr_Mhl         <= rf_waddr_Xhl;
+      cp0_wen_Mhl          <= cp0_wen_Xhl;
+      cp0_addr_Mhl         <= cp0_addr_Xhl;
+
+      bubble_Mhl           <= bubble_next_Xhl;
+    end
+    dmemreq_val_Mhl <= dmemreq_val;
+  end
 
   //----------------------------------------------------------------------
   // W <- M
