@@ -5,7 +5,7 @@
 `ifndef PARC_CORE_DPATH_V
 `define PARC_CORE_DPATH_V
 
-`include "imuldiv-IntMulDivIterative.v"
+`include "pv2long-CoreDpathPipeMulDiv.v"
 `include "pv2long-InstMsg.v"
 `include "pv2long-CoreDpathAlu.v"
 `include "pv2long-CoreDpathRegfile.v"
@@ -32,16 +32,17 @@ module parc_CoreDpath
   input   [2:0] op1_mux_sel_Dhl,
   input  [31:0] inst_Dhl,
   input   [3:0] alu_fn_Xhl,
-  input   [2:0] muldivreq_msg_fn_Xhl,
+  input   [2:0] muldivreq_msg_fn_Dhl,
   input         muldivreq_val,
   output        muldivreq_rdy,
   output        muldivresp_val,
   input         muldivresp_rdy,
-  input         muldiv_mux_sel_Xhl,
-  input         execute_mux_sel_Xhl,
+  input         muldiv_mux_sel_PWhl,
+  // input         execute_mux_sel_Xhl,
   input   [2:0] dmemresp_mux_sel_Mhl,
   input         dmemresp_queue_en_Mhl,
   input         dmemresp_queue_val_Mhl,
+  input         execute_mux_sel_PWhl,
   input         wb_mux_sel_Mhl,
   input         rf_wen_Whl,
   input  [ 4:0] rf_waddr_Whl,
@@ -49,12 +50,14 @@ module parc_CoreDpath
   input         stall_Dhl,
   input         stall_Xhl,
   input         stall_Mhl,
+  input         stall_PMhl,
+  input         stall_PWhl,
   input         stall_Whl,
 
   // Bypass Control Signals
 
-  input   [1:0] op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
-  input   [1:0] op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
+  input   [2:0] op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
+  input   [2:0] op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
 
   // Control Signals (dpath->ctrl)
 
@@ -69,27 +72,42 @@ module parc_CoreDpath
   //--------------------------------------------------------------------
 
   // Bypass values from X, M, and W stages
-  wire [31:0] rs_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rs from X stage
-  wire [31:0] rs_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rs from M stage
-  wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rs from W stage
+  wire [31:0] rs_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update wire. Bypass value for rs from X stage
+  wire [31:0] rs_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rs from M stage
+  wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // @anton-mel: update wire. Bypass value for rs from W stage
 
-  wire [31:0] rt_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rt from X stage
-  wire [31:0] rt_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rt from M stage
-  wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rt from W stage
+  wire [31:0] rt_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update-wire. Bypass value for rt from X stage
+  wire [31:0] rt_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rt from M stage
+  wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // @anton-mel: update wire. Bypass value for rt from W stage
 
+  // @anton-mel: Add new bypass paths (PM & PW)
+  wire [31:0] rs_byp_PW_Dhl = execute_mux_out_PWhl; // rs (PM) op0 & op1
+  wire [31:0] rs_byp_PM_Dhl = execute_out_PMhl;
+  wire [31:0] rt_byp_PW_Dhl = execute_mux_out_PWhl; // rt (PW) op0 & op1
+  wire [31:0] rt_byp_PM_Dhl = execute_out_PMhl;
+  // ******************************************
+
+  // @anton-mel: update the bypassing
   // Bypass mux for op0 (rs)
   wire [31:0] op0_byp_mux_out_Dhl
-    = ( op0_byp_mux_sel_Dhl == 2'b01 ) ? rs_byp_X_Dhl
-    : ( op0_byp_mux_sel_Dhl == 2'b10 ) ? rs_byp_M_Dhl
-    : ( op0_byp_mux_sel_Dhl == 2'b11 ) ? rs_byp_W_Dhl
-    : rf_rdata0_Dhl;  // Default to register file
+    = ( op0_byp_mux_sel_Dhl == 3'b001 ) ? rs_byp_X_Dhl
+    : ( op0_byp_mux_sel_Dhl == 3'b010 ) ? rs_byp_M_Dhl
+    : ( op0_byp_mux_sel_Dhl == 3'b011 ) ? rs_byp_PM_Dhl
+    : ( op0_byp_mux_sel_Dhl == 3'b100 ) ? rs_byp_PW_Dhl
+    : ( op0_byp_mux_sel_Dhl == 3'b101 ) ? rs_byp_W_Dhl
+    : rf_rdata0_Dhl;
+  // ********************************
 
+  // @anton-mel: update the bypassing
   // Bypass mux for op1 (rt)
   wire [31:0] op1_byp_mux_out_Dhl
-    = ( op1_byp_mux_sel_Dhl == 2'b01 ) ? rt_byp_X_Dhl
-    : ( op1_byp_mux_sel_Dhl == 2'b10 ) ? rt_byp_M_Dhl
-    : ( op1_byp_mux_sel_Dhl == 2'b11 ) ? rt_byp_W_Dhl
-    : rf_rdata1_Dhl;  // Default to register file
+    = ( op1_byp_mux_sel_Dhl == 3'b001 ) ? rt_byp_X_Dhl
+    : ( op1_byp_mux_sel_Dhl == 3'b010 ) ? rt_byp_M_Dhl
+    : ( op1_byp_mux_sel_Dhl == 3'b011 ) ? rt_byp_PM_Dhl
+    : ( op1_byp_mux_sel_Dhl == 3'b100 ) ? rt_byp_PW_Dhl
+    : ( op1_byp_mux_sel_Dhl == 3'b101 ) ? rt_byp_W_Dhl
+    : rf_rdata1_Dhl;
+  // ********************************
 
   //--------------------------------------------------------------------
   // PC Logic Stage
@@ -250,8 +268,8 @@ module parc_CoreDpath
     if( !stall_Xhl ) begin
       pc_Xhl          <= pc_Dhl;
       branch_targ_Xhl <= branch_targ_Dhl;
-      op0_mux_out_Xhl <= op0_mux_out_Dhl; // Use bypassed value
-      op1_mux_out_Xhl <= op1_mux_out_Dhl; // Use bypassed value
+      op0_mux_out_Xhl <= op0_mux_out_Dhl;
+      op1_mux_out_Xhl <= op1_mux_out_Dhl;
       wdata_Xhl       <= wdata_Dhl;
     end
   end
@@ -277,21 +295,25 @@ module parc_CoreDpath
 
   // Muldiv Unit
 
-  wire [63:0] muldivresp_msg_result_Xhl;
+  // wire [63:0] muldivresp_msg_result_Xhl;
 
-  // Muldiv Result Mux
+  // @anton-mel: NO RESULT HANDLING HERE, PW STAGE
+  // // Muldiv Result Mux 
+  // wire [31:0] muldiv_mux_out_Xhl
+  //   = ( muldiv_mux_sel_Xhl == 1'd0 ) ? muldivresp_msg_result_Xhl[31:0]
+  //   : ( muldiv_mux_sel_Xhl == 1'd1 ) ? muldivresp_msg_result_Xhl[63:32]
+  //   :                                  32'bx;
+  // *********************************************
 
-  wire [31:0] muldiv_mux_out_Xhl
-    = ( muldiv_mux_sel_Xhl == 1'd0 ) ? muldivresp_msg_result_Xhl[31:0]
-    : ( muldiv_mux_sel_Xhl == 1'd1 ) ? muldivresp_msg_result_Xhl[63:32]
-    :                                  32'bx;
+  // @anton-mel: THEREFORE, NO MUX AS WELL, PW STAGE
+  // // Execute Result Mux
+  // wire [31:0] execute_mux_out_Xhl
+  //   = ( execute_mux_sel_Xhl == 1'd0 ) ? alu_out_Xhl
+  //   : ( execute_mux_sel_Xhl == 1'd1 ) ? muldiv_mux_out_Xhl
+  //   :                                   32'bx;
+  // ***********************************************
 
-  // Execute Result Mux
-
-  wire [31:0] execute_mux_out_Xhl
-    = ( execute_mux_sel_Xhl == 1'd0 ) ? alu_out_Xhl
-    : ( execute_mux_sel_Xhl == 1'd1 ) ? muldiv_mux_out_Xhl
-    :                                   32'bx;
+  // USED OUTPUT: alu_out_Xhl
 
   //----------------------------------------------------------------------
   // M <- X
@@ -304,7 +326,10 @@ module parc_CoreDpath
   always @ (posedge clk) begin
     if( !stall_Mhl ) begin
       pc_Mhl              <= pc_Xhl;
-      execute_mux_out_Mhl <= execute_mux_out_Xhl;
+      // @anton-mel: propagate correct output
+      execute_mux_out_Mhl <= alu_out_Xhl;
+      // execute_mux_out_Mhl <= execute_mux_out_Xhl;
+      // ************************************
       wdata_Mhl           <= wdata_Xhl;
     end
   end
@@ -356,17 +381,92 @@ module parc_CoreDpath
     : ( dmemresp_queue_val_Mhl )  ? dmemresp_queue_reg_Mhl
     :                               32'bx;
 
-  //----------------------------------------------------------------------
-  // Writeback mux
-  //----------------------------------------------------------------------
+  // @anton-mel: MUX is still needed, but another one (naming issue)
+  // //----------------------------------------------------------------------
+  // // Writeback mux
+  // //----------------------------------------------------------------------
+  // wire [31:0] wb_mux_out_Mhl
+  //   = ( wb_mux_sel_Mhl == 1'd0 ) ? execute_mux_out_Mhl
+  //   : ( wb_mux_sel_Mhl == 1'd1 ) ? dmemresp_queue_mux_out_Mhl
+  //   :                              32'bx;
+  // *************************************************
 
-  wire [31:0] wb_mux_out_Mhl
+  // @anton-mel: New MUX for subword, Writeback will be handled for imuldiv
+  //----------------------------------------------------------------------
+  // Post-Memory mux
+  //----------------------------------------------------------------------
+  wire [31:0] pm_mux_out_Mhl
     = ( wb_mux_sel_Mhl == 1'd0 ) ? execute_mux_out_Mhl
     : ( wb_mux_sel_Mhl == 1'd1 ) ? dmemresp_queue_mux_out_Mhl
-    :                              32'bx;
+    :                                   32'bx;
+  // **********************************************************************
+
+  // USED OUTPUT: pm_mux_out_Mhl
+
+  // @anton-mel: New stages added *****************************************
+  // **********************************************************************
+  // **********************************************************************
 
   //----------------------------------------------------------------------
-  // W <- M
+  // @anton-mel: PM <- M (dummy)
+  //----------------------------------------------------------------------
+
+  reg  [31:0] pc_PMhl;
+  reg  [31:0] execute_out_PMhl;
+  reg  [31:0] wdata_PMhl;
+
+  always @ (posedge clk) begin
+    if( !stall_PMhl ) begin
+      pc_PMhl             <= pc_Mhl;
+      execute_out_PMhl    <= pm_mux_out_Mhl;
+    end
+  end
+
+  // USED OUTPUT: execute_out_PMhl
+
+  //----------------------------------------------------------------------
+  // @anton-mel: PW <- PM (dummy)
+  //----------------------------------------------------------------------
+
+  reg  [31:0] pc_PWhl;
+  reg  [31:0] execute_out_PWhl;
+  reg  [31:0] wdata_PWhl;
+
+  always @ (posedge clk) begin
+    if( !stall_PWhl ) begin
+      pc_PWhl           <= pc_PMhl;
+      execute_out_PWhl  <= execute_out_PMhl;
+    end
+  end
+
+  // USED OUTPUT: execute_out_PWhl
+
+  //----------------------------------------------------------------------
+  // Pre-Writeback Stage (MulDiv - Shifted from Execute)
+  //----------------------------------------------------------------------
+
+  wire [63:0] muldivresp_msg_result_PWhl;
+
+  // Muldiv Result Mux 
+  wire [31:0] muldiv_mux_out_PWhl
+    = ( muldiv_mux_sel_PWhl == 1'd0 ) ? muldivresp_msg_result_PWhl[31:0]
+    : ( muldiv_mux_sel_PWhl == 1'd1 ) ? muldivresp_msg_result_PWhl[63:32]
+    :                                   32'bx;
+
+  // Execute Result Mux
+  wire [31:0] execute_mux_out_PWhl
+    = ( execute_mux_sel_PWhl == 1'd0 ) ? execute_out_PWhl
+    : ( execute_mux_sel_PWhl == 1'd1 ) ? muldiv_mux_out_PWhl
+    :                               32'bx;
+
+  // **********************************************************************
+  // **********************************************************************
+  // **********************************************************************
+
+  // USED OUTPUT: execute_mux_out_PWhl
+
+  //----------------------------------------------------------------------
+  // W <- PW
   //----------------------------------------------------------------------
 
   reg  [31:0] pc_Whl;
@@ -374,10 +474,16 @@ module parc_CoreDpath
 
   always @ (posedge clk) begin
     if( !stall_Whl ) begin
-      pc_Whl                 <= pc_Mhl;
-      wb_mux_out_Whl         <= wb_mux_out_Mhl;
+      // @anton-mel: Connect the Pre-Writeback with Writeback
+      // pc_Whl                 <= pc_Mhl;
+      // wb_mux_out_Whl         <= wb_mux_out_Mhl;
+      pc_Whl                 <= pc_PWhl;
+      wb_mux_out_Whl         <= execute_mux_out_PWhl;
+      // ****************************************************
     end
   end
+
+  // USED OUTPUT: wb_mux_out_Whl
 
   //----------------------------------------------------------------------
   // Writeback Stage
@@ -443,16 +549,20 @@ module parc_CoreDpath
 
   // Multiplier/Divider
 
-  imuldiv_IntMulDivIterative imuldiv
+  parc_CoreDpathPipeMulDiv imuldiv
   (
     .clk                   (clk),
     .reset                 (reset),
-    .muldivreq_msg_fn      (muldivreq_msg_fn_Xhl),
-    .muldivreq_msg_a       (op0_mux_out_Xhl),
-    .muldivreq_msg_b       (op1_mux_out_Xhl),
+    // @anton-mel: move to the decode stage
+    .muldivreq_msg_fn      (muldivreq_msg_fn_Dhl),
+    .muldivreq_msg_a       (op0_mux_out_Dhl),
+    .muldivreq_msg_b       (op1_mux_out_Dhl),
+    // ************************************
     .muldivreq_val         (muldivreq_val),
     .muldivreq_rdy         (muldivreq_rdy),
-    .muldivresp_msg_result (muldivresp_msg_result_Xhl),
+    // @anton-mel: move to the pre-writeback stage
+    .muldivresp_msg_result (muldivresp_msg_result_PWhl),
+    // *******************************************
     .muldivresp_val        (muldivresp_val),
     .muldivresp_rdy        (muldivresp_rdy)
   );
