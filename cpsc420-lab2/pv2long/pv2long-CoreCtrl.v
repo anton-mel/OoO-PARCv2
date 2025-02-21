@@ -601,7 +601,8 @@ module parc_CoreCtrl
                           // !muldivreq_rdy ||
                           (inst_val_Xhl && is_muldiv_Xhl) ||
                           (inst_val_Mhl && is_muldiv_Mhl) ||
-                          (inst_val_PMhl && is_muldiv_PMhl) );
+                          (inst_val_PMhl && is_muldiv_PMhl) ||
+                          (inst_val_PWhl && is_muldiv_PWhl) );
   
   wire stall_muldiv_hazard_Dhl =  inst_val_Dhl && 
                                   ( ( inst_val_Xhl && is_muldiv_Xhl && (
@@ -978,7 +979,7 @@ module parc_CoreCtrl
 
   // Only accept response from muldiv if this is the right instruction
 
-  assign muldivresp_rdy = !(stall_Xhl || stall_Mhl || stall_PMhl);
+  assign muldivresp_rdy = !(stall_Xhl || stall_Mhl || stall_PMhl || stall_PWhl);
 
   // Next bubble bit
 
