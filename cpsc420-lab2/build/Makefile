@@ -95,7 +95,7 @@ tests = \
   parcv2-bgtz.vmh \
   parcv2-bltz.vmh \
   parcv2-bgez.vmh \
-  custom-test.vmh
+  parcv2-custom-test.vmh
 
 pv2stall_rtl_sim = pv2stall-sim
 pv2stall_rtl_rand_sim = pv2stall-randdelay-sim
