@@ -38,12 +38,12 @@ module parc_CoreCtrl
   input             muldivreq_rdy,
   input             muldivresp_val,
   output            muldivresp_rdy,
-  output reg        muldiv_mux_sel_Xhl,
+  output reg        muldiv_mux_sel_PWhl,
   output reg        execute_mux_sel_Mhl,
   output reg [2:0]  dmemresp_mux_sel_Mhl,
   output            dmemresp_queue_en_Mhl,
   output reg        dmemresp_queue_val_Mhl,
-  output reg        wb_mux_sel_Mhl,
+  output reg        wb_mux_sel_PWhl,
   output            rf_wen_out_Whl,
   output reg [4:0]  rf_waddr_Whl,
   output            stall_Fhl,
@@ -617,7 +617,7 @@ module parc_CoreCtrl
   // reg  [3:0] alu_fn_Xhl; (declared as output)
   reg        muldivreq_val_Xhl;
   // reg  [2:0] muldivreq_msg_fn_Dhl; (declared as output)
-  // reg        muldiv_mux_sel_Xhl; (declared as output)
+  reg        muldiv_mux_sel_Xhl;
   // reg        execute_mux_sel_Mhl; (declared as output)
   reg        dmemreq_msg_rw_Xhl;
   reg  [1:0] dmemreq_msg_len_Xhl;
@@ -743,13 +743,13 @@ module parc_CoreCtrl
 
   reg [31:0] ir_Mhl;
   reg        dmemreq_val_Mhl;
-  // reg  [2:0] dmemresp_mux_sel_Mhl; (declared as output)
-  // reg        wb_mux_sel_PWhl; (declared as output)
+  reg        wb_mux_sel_Mhl;
+  reg        muldiv_mux_sel_Mhl;
+
   reg        rf_wen_Mhl;
   reg  [4:0] rf_waddr_Mhl;
   reg        cp0_wen_Mhl;
   reg  [4:0] cp0_addr_Mhl;
-  reg        wb_mux_sel_Mhl;
 
   reg        bubble_Mhl;
 
@@ -760,16 +760,18 @@ module parc_CoreCtrl
       bubble_Mhl <= 1'b1;
     end
     else if( !stall_Mhl ) begin
-      ir_Mhl               <= ir_Xhl;
-      execute_mux_sel_Mhl  <= execute_mux_sel_Xhl;
-      dmemresp_mux_sel_Mhl <= dmemresp_mux_sel_Xhl;
-      wb_mux_sel_Mhl       <= wb_mux_sel_Xhl;
-      rf_wen_Mhl           <= rf_wen_Xhl;
-      rf_waddr_Mhl         <= rf_waddr_Xhl;
-      cp0_wen_Mhl          <= cp0_wen_Xhl;
-      cp0_addr_Mhl         <= cp0_addr_Xhl;
+      ir_Mhl               <= ir_Xhl; // propagate untill W
+      execute_mux_sel_Mhl  <= execute_mux_sel_Xhl; // returned here
+      dmemresp_mux_sel_Mhl <= dmemresp_mux_sel_Xhl; // returned here
+      wb_mux_sel_Mhl       <= wb_mux_sel_Xhl; // propagate untill PW
+      muldiv_mux_sel_Mhl   <= muldiv_mux_sel_Xhl; // propagate untill PW
 
-      bubble_Mhl           <= bubble_next_Xhl;
+      rf_wen_Mhl           <= rf_wen_Xhl; // propagate untill W
+      rf_waddr_Mhl         <= rf_waddr_Xhl; // propagate untill W
+      cp0_wen_Mhl          <= cp0_wen_Xhl; // propagate untill W
+      cp0_addr_Mhl         <= cp0_addr_Xhl; // propagate untill W
+
+      bubble_Mhl           <= bubble_next_Xhl; // propagate untill W
     end
     dmemreq_val_Mhl <= dmemreq_val;
   end
@@ -808,19 +810,23 @@ module parc_CoreCtrl
                        : ( bubble_sel_Mhl )  ? 1'b1
                        :                       1'bx;
 
+  // @anton-mel: New stages added *****************************************
+  // **********************************************************************
+  // **********************************************************************
+
   //----------------------------------------------------------------------
   // PM <- M
   //----------------------------------------------------------------------
 
   reg [31:0] ir_PMhl;
   reg        dmemreq_val_PMhl;
-  // reg  [2:0] dmemresp_mux_sel_Mhl; (declared as output)
-  // reg        wb_mux_sel_PWhl; (declared as output)
+  reg        wb_mux_sel_PMhl;
+  reg        muldiv_mux_sel_PMhl;
+
   reg        rf_wen_PMhl;
   reg  [4:0] rf_waddr_PMhl;
   reg        cp0_wen_PMhl;
   reg  [4:0] cp0_addr_PMhl;
-  reg        wb_mux_sel_PMhl;
 
   reg        bubble_PMhl;
 
@@ -830,27 +836,63 @@ module parc_CoreCtrl
     if ( reset ) begin
       bubble_PMhl <= 1'b1;
     end
-    else if( !stall_PMhl ) begin
-      ir_PMhl               <= ir_Xhl;
-      execute_mux_sel_Mhl  <= execute_mux_sel_Xhl;
-      dmemresp_mux_sel_Mhl <= dmemresp_mux_sel_Xhl;
-      wb_mux_sel_Mhl       <= wb_mux_sel_Xhl;
-      rf_wen_Mhl           <= rf_wen_Xhl;
-      rf_waddr_Mhl         <= rf_waddr_Xhl;
-      cp0_wen_Mhl          <= cp0_wen_Xhl;
-      cp0_addr_Mhl         <= cp0_addr_Xhl;
+    else if( !stall_Mhl ) begin
+      ir_PMhl               <= ir_Mhl; // propagate untill W
+      wb_mux_sel_PMhl       <= wb_mux_sel_Mhl; // propagate untill PW
+      muldiv_mux_sel_PMhl   <= muldiv_mux_sel_Mhl; // propagate untill PW
 
-      bubble_Mhl           <= bubble_next_Xhl;
+      rf_wen_PMhl           <= rf_wen_Mhl; // propagate untill W
+      rf_waddr_PMhl         <= rf_waddr_Mhl; // propagate untill W
+      cp0_wen_PMhl          <= cp0_wen_Mhl; // propagate untill W
+      cp0_addr_PMhl         <= cp0_addr_Mhl; // propagate untill W
+
+      bubble_PMhl           <= bubble_next_Mhl; // propagate untill W
     end
-    dmemreq_val_Mhl <= dmemreq_val;
   end
 
   //----------------------------------------------------------------------
-  // W <- M
+  // PW <- PM
+  //----------------------------------------------------------------------
+
+  reg [31:0] ir_PWhl;
+  reg        dmemreq_val_PWhl;
+
+  reg        rf_wen_PWhl;
+  reg  [4:0] rf_waddr_PWhl;
+  reg        cp0_wen_PWhl;
+  reg  [4:0] cp0_addr_PWhl;
+
+  reg        bubble_PWhl;
+
+  // Pipeline Controls
+
+  always @ ( posedge clk ) begin
+    if ( reset ) begin
+      bubble_PWhl <= 1'b1;
+    end
+    else if( !stall_Mhl ) begin
+      ir_PWhl               <= ir_PMhl; // propagate untill W
+      wb_mux_sel_PWhl       <= wb_mux_sel_PMhl; // returned here
+      muldiv_mux_sel_PWhl   <= muldiv_mux_sel_PMhl; // returned here
+
+      rf_wen_PWhl           <= rf_wen_PMhl; // propagate untill W
+      rf_waddr_PWhl         <= rf_waddr_PMhl; // propagate untill W
+      cp0_wen_PWhl          <= cp0_wen_PMhl; // propagate untill W
+      cp0_addr_PWhl         <= cp0_addr_PMhl; // propagate untill W
+
+      bubble_PWhl           <= bubble_PMhl; // propagate untill W
+    end
+  end
+
+  // **********************************************************************
+  // **********************************************************************
+  // **********************************************************************
+
+  //----------------------------------------------------------------------
+  // W <- PW
   //----------------------------------------------------------------------
 
   reg [31:0] ir_Whl;
-  // reg        dmemresp_queue_val_Mhl; (declared as output)
   reg        rf_wen_Whl;
   // reg  [4:0] rf_waddr_Whl; (declared as output)
   reg        cp0_wen_Whl;
@@ -865,15 +907,15 @@ module parc_CoreCtrl
       bubble_Whl <= 1'b1;
     end
     else if( !stall_Whl ) begin
-      ir_Whl           <= ir_Mhl;
-      rf_wen_Whl       <= rf_wen_Mhl;
-      rf_waddr_Whl     <= rf_waddr_Mhl;
-      cp0_wen_Whl      <= cp0_wen_Mhl;
-      cp0_addr_Whl     <= cp0_addr_Mhl;
+      ir_Whl               <= ir_PWhl; // propagate untill W
 
-      bubble_Whl       <= bubble_next_Mhl;
+      rf_wen_Whl           <= rf_wen_PWhl; // returned here
+      rf_waddr_Whl         <= rf_waddr_PWhl; // propagate untill W
+      cp0_wen_Whl          <= cp0_wen_PWhl; // propagate untill W
+      cp0_addr_Whl         <= cp0_addr_PWhl; // propagate untill W
+
+      bubble_Whl           <= bubble_PWhl; // propagate untill W
     end
-    dmemresp_queue_val_Mhl <= dmemresp_queue_val_next_Mhl;
   end
 
   //----------------------------------------------------------------------
@@ -1015,4 +1057,3 @@ module parc_CoreCtrl
 endmodule
 
 `endif
-

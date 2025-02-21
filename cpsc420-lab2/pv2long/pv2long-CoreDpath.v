@@ -32,28 +32,26 @@ module parc_CoreDpath
   input   [2:0] op1_mux_sel_Dhl,
   input  [31:0] inst_Dhl,
   input   [3:0] alu_fn_Xhl,
-  input   [2:0] muldivreq_msg_fn_Xhl,
+  input   [2:0] muldivreq_msg_fn_Dhl,
   input         muldivreq_val,
   output        muldivreq_rdy,
   output        muldivresp_val,
   input         muldivresp_rdy,
-  input         muldiv_mux_sel_Xhl,
-  input         execute_mux_sel_Xhl,
+  input         muldiv_mux_sel_PWhl,
+  // input         execute_mux_sel_Xhl,
   input   [2:0] dmemresp_mux_sel_Mhl,
   input         dmemresp_queue_en_Mhl,
   input         dmemresp_queue_val_Mhl,
-  input         wb_mux_sel_Mhl,
+  input         execute_mux_sel_Mhl,
+  input         wb_mux_sel_PWhl,
   input         rf_wen_Whl,
   input  [ 4:0] rf_waddr_Whl,
   input         stall_Fhl,
   input         stall_Dhl,
   input         stall_Xhl,
   input         stall_Mhl,
-  // @anton-mel: new control 
-  // signals for PM and PW stages
   input         stall_PMhl,
   input         stall_PWhl,
-  // **********************
   input         stall_Whl,
 
   // Bypass Control Signals
@@ -74,13 +72,13 @@ module parc_CoreDpath
   //--------------------------------------------------------------------
 
   // Bypass values from X, M, and W stages
-  wire [31:0] rs_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rs from X stage
-  wire [31:0] rs_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rs from M stage
-  wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rs from W stage
+  wire [31:0] rs_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update wire. Bypass value for rs from X stage
+  wire [31:0] rs_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rs from M stage
+  wire [31:0] rs_byp_W_Dhl = execute_mux_out_PWhl;  // @anton-mel: update wire. Bypass value for rs from W stage
 
-  wire [31:0] rt_byp_X_Dhl = execute_mux_out_Xhl;  // Bypass value for rt from X stage
-  wire [31:0] rt_byp_M_Dhl = wb_mux_out_Mhl;  // Bypass value for rt from M stage
-  wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // Bypass value for rt from W stage
+  wire [31:0] rt_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update-wire. Bypass value for rt from X stage
+  wire [31:0] rt_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rt from M stage
+  wire [31:0] rt_byp_W_Dhl = execute_mux_out_PWhl;  // @anton-mel: update wire. Bypass value for rt from W stage
 
   // @anton-mel: Add new bypass paths (PM & PW)
   wire [31:0] rs_byp_PW_Dhl = execute_out_PWhl; // rs (PM) op0 & op1
