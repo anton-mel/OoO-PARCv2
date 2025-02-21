@@ -587,18 +587,10 @@ module parc_CoreCtrl
 
   // Instead use load–Use Hazard: if D depends on a load in X.
 
-  wire stall_load_use_Dhl = inst_val_Dhl && 
-                            ( inst_val_Xhl && is_load_Xhl &&
-                            (
+  wire stall_load_use_Dhl = inst_val_Dhl && inst_val_Xhl && is_load_Xhl (
                               (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0)) ||
                               (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Xhl) && (rf_waddr_Xhl != 5'd0))
-                            ) )
-                            || ( inst_val_Mhl && is_load_Mhl &&
-                            (
-                              (rs_en_Dhl && (rs_addr_Dhl == rf_waddr_Mhl) && (rf_waddr_Mhl != 5'd0)) ||
-                              (rt_en_Dhl && (rt_addr_Dhl == rf_waddr_Mhl) && (rf_waddr_Mhl != 5'd0))
-                            ) )
-                            ;
+                            );
 
   // Aggregate Stall Signal
 
