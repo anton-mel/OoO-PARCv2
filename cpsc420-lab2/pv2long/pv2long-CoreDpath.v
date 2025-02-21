@@ -42,8 +42,8 @@ module parc_CoreDpath
   input   [2:0] dmemresp_mux_sel_Mhl,
   input         dmemresp_queue_en_Mhl,
   input         dmemresp_queue_val_Mhl,
-  input         execute_mux_sel_Mhl,
-  input         wb_mux_sel_PWhl,
+  input         execute_mux_sel_PWhl,
+  input         wb_mux_sel_Mhl,
   input         rf_wen_Whl,
   input  [ 4:0] rf_waddr_Whl,
   input         stall_Fhl,
@@ -56,8 +56,8 @@ module parc_CoreDpath
 
   // Bypass Control Signals
 
-  input   [1:0] op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
-  input   [1:0] op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
+  input   [2:0] op0_byp_mux_sel_Dhl,  // Bypass mux select for op0
+  input   [2:0] op1_byp_mux_sel_Dhl,  // Bypass mux select for op1
 
   // Control Signals (dpath->ctrl)
 
@@ -74,16 +74,16 @@ module parc_CoreDpath
   // Bypass values from X, M, and W stages
   wire [31:0] rs_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update wire. Bypass value for rs from X stage
   wire [31:0] rs_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rs from M stage
-  wire [31:0] rs_byp_W_Dhl = execute_mux_out_PWhl;  // @anton-mel: update wire. Bypass value for rs from W stage
+  wire [31:0] rs_byp_W_Dhl = wb_mux_out_Whl;  // @anton-mel: update wire. Bypass value for rs from W stage
 
   wire [31:0] rt_byp_X_Dhl = alu_out_Xhl;  // @anton-mel: update-wire. Bypass value for rt from X stage
   wire [31:0] rt_byp_M_Dhl = pm_mux_out_Mhl;  // @anton-mel: update wire. Bypass value for rt from M stage
-  wire [31:0] rt_byp_W_Dhl = execute_mux_out_PWhl;  // @anton-mel: update wire. Bypass value for rt from W stage
+  wire [31:0] rt_byp_W_Dhl = wb_mux_out_Whl;  // @anton-mel: update wire. Bypass value for rt from W stage
 
   // @anton-mel: Add new bypass paths (PM & PW)
-  wire [31:0] rs_byp_PW_Dhl = execute_out_PWhl; // rs (PM) op0 & op1
+  wire [31:0] rs_byp_PW_Dhl = execute_mux_out_PWhl; // rs (PM) op0 & op1
   wire [31:0] rs_byp_PM_Dhl = execute_out_PMhl;
-  wire [31:0] rt_byp_PW_Dhl = execute_out_PWhl; // rt (PW) op0 & op1
+  wire [31:0] rt_byp_PW_Dhl = execute_mux_out_PWhl; // rt (PW) op0 & op1
   wire [31:0] rt_byp_PM_Dhl = execute_out_PMhl;
   // ******************************************
 
@@ -396,8 +396,8 @@ module parc_CoreDpath
   // Post-Memory mux
   //----------------------------------------------------------------------
   wire [31:0] pm_mux_out_Mhl
-    = ( execute_mux_sel_Mhl == 1'd0 ) ? execute_mux_out_Mhl
-    : ( execute_mux_sel_Mhl == 1'd1 ) ? dmemresp_queue_mux_out_Mhl
+    = ( wb_mux_sel_Mhl == 1'd0 ) ? execute_mux_out_Mhl
+    : ( wb_mux_sel_Mhl == 1'd1 ) ? dmemresp_queue_mux_out_Mhl
     :                                   32'bx;
   // **********************************************************************
 
@@ -455,8 +455,8 @@ module parc_CoreDpath
 
   // Execute Result Mux
   wire [31:0] execute_mux_out_PWhl
-    = ( wb_mux_sel_PWhl == 1'd0 ) ? execute_out_PWhl
-    : ( wb_mux_sel_PWhl == 1'd1 ) ? muldiv_mux_out_PWhl
+    = ( execute_mux_sel_PWhl == 1'd0 ) ? execute_out_PWhl
+    : ( execute_mux_sel_PWhl == 1'd1 ) ? muldiv_mux_out_PWhl
     :                               32'bx;
 
   // **********************************************************************

@@ -62,11 +62,11 @@ module parc_Core
   wire        muldivresp_val;
   wire        muldivresp_rdy;
   wire        muldiv_mux_sel_PWhl;
-  wire        execute_mux_sel_Mhl;
+  wire        execute_mux_sel_PWhl;
   wire  [2:0] dmemresp_mux_sel_Mhl;
   wire        dmemresp_queue_en_Mhl;
   wire        dmemresp_queue_val_Mhl;
-  wire        wb_mux_sel_PWhl;
+  wire        wb_mux_sel_Mhl;
   wire        rf_wen_Whl;
   wire  [4:0] rf_waddr_Whl;
   wire        stall_Fhl;
@@ -78,8 +78,8 @@ module parc_Core
   wire        stall_Whl;
 
   // Bypass Control Signals
-  wire  [1:0] op0_byp_mux_sel_Dhl;
-  wire  [1:0] op1_byp_mux_sel_Dhl;
+  wire  [2:0] op0_byp_mux_sel_Dhl;
+  wire  [2:0] op1_byp_mux_sel_Dhl;
 
   wire        branch_cond_eq_Xhl;
   wire        branch_cond_zero_Xhl;
@@ -165,11 +165,11 @@ module parc_Core
     .muldivresp_val         (muldivresp_val),
     .muldivresp_rdy         (muldivresp_rdy),
     .muldiv_mux_sel_PWhl    (muldiv_mux_sel_PWhl),
-    .execute_mux_sel_Mhl    (execute_mux_sel_Mhl),
+    .execute_mux_sel_PWhl   (execute_mux_sel_PWhl),
     .dmemresp_mux_sel_Mhl   (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl  (dmemresp_queue_en_Mhl),
     .dmemresp_queue_val_Mhl (dmemresp_queue_val_Mhl),
-    .wb_mux_sel_PWhl        (wb_mux_sel_PWhl),
+    .wb_mux_sel_Mhl         (wb_mux_sel_Mhl),
     .rf_wen_out_Whl         (rf_wen_Whl),
     .rf_waddr_Whl           (rf_waddr_Whl),
     .stall_Fhl              (stall_Fhl),
@@ -229,11 +229,11 @@ module parc_Core
     .muldivresp_val          (muldivresp_val),
     .muldivresp_rdy          (muldivresp_rdy),
     .muldiv_mux_sel_PWhl     (muldiv_mux_sel_PWhl),
-    .execute_mux_sel_Mhl     (execute_mux_sel_Mhl),
+    .execute_mux_sel_PWhl    (execute_mux_sel_PWhl),
     .dmemresp_mux_sel_Mhl    (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl   (dmemresp_queue_en_Mhl),
     .dmemresp_queue_val_Mhl  (dmemresp_queue_val_Mhl),
-    .wb_mux_sel_PWhl         (wb_mux_sel_PWhl),
+    .wb_mux_sel_Mhl          (wb_mux_sel_Mhl),
     .rf_wen_Whl              (rf_wen_Whl),
     .rf_waddr_Whl            (rf_waddr_Whl),
     .stall_Fhl               (stall_Fhl),
