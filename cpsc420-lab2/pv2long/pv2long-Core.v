@@ -61,7 +61,7 @@ module parc_Core
   wire        muldivreq_rdy;
   wire        muldivresp_val;
   wire        muldivresp_rdy;
-  wire        muldiv_mux_sel_Xhl;
+  wire        muldiv_mux_sel_PWhl;
   wire        execute_mux_sel_Mhl;
   wire  [2:0] dmemresp_mux_sel_Mhl;
   wire        dmemresp_queue_en_Mhl;
@@ -164,7 +164,7 @@ module parc_Core
     .muldivreq_rdy          (muldivreq_rdy),
     .muldivresp_val         (muldivresp_val),
     .muldivresp_rdy         (muldivresp_rdy),
-    .muldiv_mux_sel_Xhl     (muldiv_mux_sel_Xhl),
+    .muldiv_mux_sel_PWhl    (muldiv_mux_sel_PWhl),
     .execute_mux_sel_Mhl    (execute_mux_sel_Mhl),
     .dmemresp_mux_sel_Mhl   (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl  (dmemresp_queue_en_Mhl),
@@ -228,7 +228,7 @@ module parc_Core
     .muldivreq_rdy           (muldivreq_rdy),
     .muldivresp_val          (muldivresp_val),
     .muldivresp_rdy          (muldivresp_rdy),
-    .muldiv_mux_sel_Xhl      (muldiv_mux_sel_Xhl),
+    .muldiv_mux_sel_PWhl     (muldiv_mux_sel_PWhl),
     .execute_mux_sel_Mhl     (execute_mux_sel_Mhl),
     .dmemresp_mux_sel_Mhl    (dmemresp_mux_sel_Mhl),
     .dmemresp_queue_en_Mhl   (dmemresp_queue_en_Mhl),
