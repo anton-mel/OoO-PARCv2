@@ -549,7 +549,7 @@ module parc_CoreCtrl
 
   // Muldiv request
 
-  assign muldivreq_val = muldivreq_val_Dhl && inst_val_Dhl;
+  assign muldivreq_val = muldivreq_val_Dhl && inst_val_Dhl && !stall_muldiv_Dhl;
   assign muldivreq_msg_fn_Dhl = cs[`PARC_INST_MSG_MULDIV_FN];
 
   // Muldiv Mux Select
@@ -977,10 +977,13 @@ module parc_CoreCtrl
 
   assign stall_PWhl = stall_Whl;
 
-  // Only accept response from muldiv if this is the right instruction
+  // Stall muldiv unit when the muldiv instruction is stalled
 
-  assign muldivresp_rdy = !(stall_Xhl || stall_Mhl || stall_PMhl || stall_PWhl);
-
+  assign muldivresp_rdy = !((inst_val_Xhl  && stall_Xhl  && is_muldiv_Xhl) ||
+                            (inst_val_Mhl  && stall_Mhl  && is_muldiv_Mhl) ||
+                            (inst_val_PMhl && stall_PMhl && is_muldiv_PMhl) ||
+                            (inst_val_PWhl && stall_PWhl && is_muldiv_PWhl) );
+  
   // Next bubble bit
 
   wire bubble_sel_PWhl  = ( squash_PWhl || stall_PWhl );
