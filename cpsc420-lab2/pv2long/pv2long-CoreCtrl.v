@@ -599,10 +599,10 @@ module parc_CoreCtrl
 
   wire stall_muldiv_Dhl = ( muldivreq_val_Dhl && inst_val_Dhl) && (
                           // !muldivreq_rdy ||
-                          (inst_val_Xhl && is_muldiv_Xhl) ||
-                          (inst_val_Mhl && is_muldiv_Mhl) ||
-                          (inst_val_PMhl && is_muldiv_PMhl) ||
-                          (inst_val_PWhl && is_muldiv_PWhl) );
+                          (inst_val_Xhl && is_muldiv_Xhl && stall_Xhl) );
+                          // (inst_val_Mhl && is_muldiv_Mhl) ||
+                          // (inst_val_PMhl && is_muldiv_PMhl) ||
+                          // (inst_val_PWhl && is_muldiv_PWhl) );
   
   wire stall_muldiv_hazard_Dhl =  inst_val_Dhl && 
                                   ( ( inst_val_Xhl && is_muldiv_Xhl && (
