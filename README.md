@@ -10,3 +10,9 @@ In this lab, we extend a pipelined PARCv1 processor into a full-featured PARCv2 
 
 ![Bypassing Data Path Diagram](static/bypassing_dpath.png)
 ![MulDiv & Bypassing Data Path Diagram](static/muldiv_byp_dpath.png)
+
+### Lab3: Superscalar PARCv2 Processor
+
+In this lab, we create a two-wide superscalar in-order processor. We are provided with a
+working datapath of such processor, and we add the processor control logic, instruction steering
+logic, and a scoreboard to enable your processor to properly execute two instructions per cycle.
