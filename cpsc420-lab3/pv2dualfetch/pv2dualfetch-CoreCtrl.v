@@ -222,6 +222,9 @@ module parc_CoreCtrl
   reg [31:0] ir1_Dhl;
   reg        bubble_Dhl;
 
+  // here should probably use stall_0_dhl
+  // and stall_1_dhl to stall pipelines.
+  // This line is for flushing if branch/ jumps.
   wire squash_first_D_inst =
     (inst_val_Dhl && !stall_0_Dhl && stall_1_Dhl);
 
@@ -959,6 +962,7 @@ module parc_CoreCtrl
 
   reg [31:0] ir0_X0hl;
   reg [31:0] irA_X0hl; // @anton-mel
+  reg [31:0] irB_X0hl; // @anton-mel
 
   reg  [2:0] br_sel_X0hl;
   reg  [3:0] alu0_fn_X0hl;
@@ -993,6 +997,7 @@ module parc_CoreCtrl
     else if( !stall_X0hl ) begin
       ir0_X0hl              <= ir0_Dhl;
       irA_X0hl              <= irA_Dhl; // @anton-mel
+      irB_X0hl              <= irB_Dhl; // @anton-mel
 
       br_sel_X0hl           <= br_sel_Dhl;
       alu0_fn_X0hl          <= alu0_fn_Dhl;
@@ -1098,6 +1103,7 @@ module parc_CoreCtrl
 
   reg [31:0] ir0_X1hl;
   reg [31:0] irA_X1hl; // @anton-mel
+  reg [31:0] irB_X1hl; // @anton-mel
 
   reg        is_load_X1hl;
   reg        is_muldiv_X1hl;
@@ -1128,6 +1134,7 @@ module parc_CoreCtrl
     else if( !stall_X1hl ) begin
       ir0_X1hl              <= ir0_X0hl;
       irA_X1hl              <= irA_X0hl; // @anton-mel
+      irB_X1hl              <= irB_X0hl; // @anton-mel
 
       is_load_X1hl          <= is_load_X0hl;
       is_muldiv_X1hl        <= is_muldiv_X0hl;
@@ -1182,6 +1189,7 @@ module parc_CoreCtrl
 
   reg [31:0] ir0_X2hl;
   reg [31:0] irA_X2hl; // @anton-mel
+  reg [31:0] irB_X2hl; // @anton-mel
 
   reg        is_muldiv_X2hl;
   reg        dmemresp_queue_val_X1hl;
@@ -1207,6 +1215,7 @@ module parc_CoreCtrl
     else if( !stall_X2hl ) begin
       ir0_X2hl              <= ir0_X1hl;
       irA_X2hl              <= irA_X1hl; // @anton-mel
+      irB_X2hl              <= irB_X1hl; // @anton-mel
 
       is_muldiv_X2hl        <= is_muldiv_X1hl;
       muldiv_mux_sel_X2hl   <= muldiv_mux_sel_X1hl;
@@ -1250,6 +1259,7 @@ module parc_CoreCtrl
 
   reg [31:0] ir0_X3hl;
   reg [31:0] irA_X3hl; // @anton-mel
+  reg [31:0] irB_X3hl; // @anton-mel
 
   reg        is_muldiv_X3hl;
 
@@ -1274,6 +1284,7 @@ module parc_CoreCtrl
     else if( !stall_X3hl ) begin
       ir0_X3hl              <= ir0_X2hl;
       irA_X3hl              <= irA_X2hl; // @anton-mel
+      irB_X3hl              <= irB_X2hl; // @anton-mel
 
       is_muldiv_X3hl        <= is_muldiv_X2hl;
       muldiv_mux_sel_X3hl   <= muldiv_mux_sel_X2hl;
@@ -1316,6 +1327,7 @@ module parc_CoreCtrl
 
   reg [31:0] ir0_Whl;
   reg [31:0] irA_Whl; // @anton-mel
+  reg [31:0] irB_Whl; // @anton-mel
 
   // @anton-mel: need 
   // to add rfA_wen_Whl
@@ -1336,6 +1348,7 @@ module parc_CoreCtrl
     else if( !stall_Whl ) begin
       ir0_Whl          <= ir0_X3hl;
       irA_Whl          <= irA_X3hl; // @anton-mel
+      irB_Whl          <= irB_X3hl; // @anton-mel
 
       rf0_wen_Whl      <= rf0_wen_X3hl;
       rf0_waddr_Whl    <= rf0_waddr_X3hl;
