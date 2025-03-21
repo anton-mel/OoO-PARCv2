@@ -594,7 +594,24 @@ module parc_CoreCtrl
 
   // @anton-mel: handle Pipeline A. 
   reg steering_mux_sel; // switch per each cycle 
-                        // and stall when needed.
+                        // and stall when needed (add later).
+
+  always @ ( posedge clk ) begin
+    if ( reset ) begin
+      steering_mux_sel <= 1'b0;
+    end
+    else if( !stall_Dhl ) begin
+      if ( steering_mux_sel == 1'b0 )
+      begin
+        steering_mux_sel <= 1'b1;
+      end
+      else if (steering_mux_sel == 1'b1)
+      begin
+        steering_mux_sel <= 1'b0;
+      end
+    end
+  end
+
   // OUTPUT: csA => instead of cs0 (fixed all in D)
 
   always @(*)
@@ -839,8 +856,8 @@ module parc_CoreCtrl
 
   // Register Writeback Controls
 
-  wire rf0_wen_Dhl         = csA[`PARC_INST_MSG_RF_WEN];
-  wire [4:0] rf0_waddr_Dhl = csA[`PARC_INST_MSG_RF_WADDR];
+  wire rfA_wen_Dhl         = csA[`PARC_INST_MSG_RF_WEN];    // @anton-mel
+  wire [4:0] rfA_waddr_Dhl = csA[`PARC_INST_MSG_RF_WADDR];  // @anton-mel
 
   // Coprocessor write enable
 
@@ -947,11 +964,14 @@ module parc_CoreCtrl
 
   // Aggregate Stall Signal
 
-  wire stall_Dhl = (stall_X0hl || stall_0_muldiv_use_Dhl || stall_0_load_use_Dhl);
+  // @anton-mel: here we go, i think this is where the stall should be segragated.
+  wire stall_0_Dhl = (stall_X0hl || stall_0_muldiv_use_Dhl || stall_0_load_use_Dhl);
+  wire stall_1_Dhl = (stall_X0hl || stall_1_muldiv_use_Dhl || stall_1_load_use_Dhl);
+  wire stall_Dhl = stall_0_Dhl || stall_1_Dhl;
 
   // Next bubble bit
 
-  wire bubble_sel_Dhl  = ( squash_Dhl || stall_0_Dhl );
+  wire bubble_sel_Dhl  = ( squash_Dhl || stall_Dhl ); // @anton-mel: use stall_Dhl (either of them stall)
   wire bubble_next_Dhl = ( !bubble_sel_Dhl ) ? bubble_Dhl
                        : ( bubble_sel_Dhl )  ? 1'b1
                        :                       1'bx;
@@ -980,8 +1000,8 @@ module parc_CoreCtrl
 
   // @anton-mel: need 
   // to add rfA_wen_X0hl
-  reg        rf0_wen_X0hl;
-  reg  [4:0] rf0_waddr_X0hl;
+  reg        rfA_wen_X0hl;
+  reg  [4:0] rfA_waddr_X0hl;
 
   reg        cp0_wen_X0hl;
   reg  [4:0] cp0_addr_X0hl;
@@ -1012,8 +1032,8 @@ module parc_CoreCtrl
       dmemreq_val_X0hl      <= dmemreq_val_Dhl;
       dmemresp_mux_sel_X0hl <= dmemresp_mux_sel_Dhl;
       memex_mux_sel_X0hl    <= memex_mux_sel_Dhl;
-      rf0_wen_X0hl          <= rf0_wen_Dhl;
-      rf0_waddr_X0hl        <= rf0_waddr_Dhl;
+      rfA_wen_X0hl          <= rfA_wen_Dhl;   // @anton-mel
+      rfA_waddr_X0hl        <= rfA_waddr_Dhl; // @anton-mel
       cp0_wen_X0hl          <= cp0_wen_Dhl;
       cp0_addr_X0hl         <= cp0_addr_Dhl;
 
@@ -1115,8 +1135,8 @@ module parc_CoreCtrl
 
   // @anton-mel: need 
   // to add rfA_wen_X1hl
-  reg        rf0_wen_X1hl;
-  reg  [4:0] rf0_waddr_X1hl;
+  reg        rfA_wen_X1hl;
+  reg  [4:0] rfA_waddr_X1hl;
 
   reg        cp0_wen_X1hl;
   reg  [4:0] cp0_addr_X1hl;
@@ -1143,8 +1163,8 @@ module parc_CoreCtrl
       memex_mux_sel_X1hl    <= memex_mux_sel_X0hl;
       execute_mux_sel_X1hl  <= execute_mux_sel_X0hl;
       muldiv_mux_sel_X1hl   <= muldiv_mux_sel_X0hl;
-      rf0_wen_X1hl          <= rf0_wen_X0hl;
-      rf0_waddr_X1hl        <= rf0_waddr_X0hl;
+      rfA_wen_X1hl          <= rfA_wen_X0hl;    // @anton-mel
+      rfA_waddr_X1hl        <= rfA_waddr_X0hl;  // @anton-mel
       cp0_wen_X1hl          <= cp0_wen_X0hl;
       cp0_addr_X1hl         <= cp0_addr_X0hl;
 
@@ -1196,8 +1216,8 @@ module parc_CoreCtrl
 
   // @anton-mel: need 
   // to add rfA_wen_X2hl
-  reg        rf0_wen_X2hl;
-  reg  [4:0] rf0_waddr_X2hl;
+  reg        rfA_wen_X2hl;
+  reg  [4:0] rfA_waddr_X2hl;
 
   reg        cp0_wen_X2hl;
   reg  [4:0] cp0_addr_X2hl;
@@ -1219,8 +1239,8 @@ module parc_CoreCtrl
 
       is_muldiv_X2hl        <= is_muldiv_X1hl;
       muldiv_mux_sel_X2hl   <= muldiv_mux_sel_X1hl;
-      rf0_wen_X2hl          <= rf0_wen_X1hl;
-      rf0_waddr_X2hl        <= rf0_waddr_X1hl;
+      rfA_wen_X2hl          <= rfA_wen_X1hl;    // @anton-mel
+      rfA_waddr_X2hl        <= rfA_waddr_X1hl;  // @anton-mel
       cp0_wen_X2hl          <= cp0_wen_X1hl;
       cp0_addr_X2hl         <= cp0_addr_X1hl;
       execute_mux_sel_X2hl  <= execute_mux_sel_X1hl;
@@ -1265,8 +1285,8 @@ module parc_CoreCtrl
 
   // @anton-mel: need 
   // to add rfA_wen_X3hl
-  reg        rf0_wen_X3hl;
-  reg  [4:0] rf0_waddr_X3hl;
+  reg        rfA_wen_X3hl;
+  reg  [4:0] rfA_waddr_X3hl;
 
   reg        cp0_wen_X3hl;
   reg  [4:0] cp0_addr_X3hl;
@@ -1288,8 +1308,8 @@ module parc_CoreCtrl
 
       is_muldiv_X3hl        <= is_muldiv_X2hl;
       muldiv_mux_sel_X3hl   <= muldiv_mux_sel_X2hl;
-      rf0_wen_X3hl          <= rf0_wen_X2hl;
-      rf0_waddr_X3hl        <= rf0_waddr_X2hl;
+      rfA_wen_X3hl          <= rfA_wen_X2hl;    // @anton-mel
+      rfA_waddr_X3hl        <= rfA_waddr_X2hl;  // @anton-mel
       cp0_wen_X3hl          <= cp0_wen_X2hl;
       cp0_addr_X3hl         <= cp0_addr_X2hl;
       execute_mux_sel_X3hl  <= execute_mux_sel_X2hl;
@@ -1331,8 +1351,8 @@ module parc_CoreCtrl
 
   // @anton-mel: need 
   // to add rfA_wen_Whl
-  reg        rf0_wen_Whl;
-  reg  [4:0] rf0_waddr_Whl;
+  reg        rfA_wen_Whl;
+  reg  [4:0] rfA_waddr_Whl;
 
   reg        cp0_wen_Whl;
   reg  [4:0] cp0_addr_Whl;
@@ -1350,8 +1370,9 @@ module parc_CoreCtrl
       irA_Whl          <= irA_X3hl; // @anton-mel
       irB_Whl          <= irB_X3hl; // @anton-mel
 
-      rf0_wen_Whl      <= rf0_wen_X3hl;
-      rf0_waddr_Whl    <= rf0_waddr_X3hl;
+      rfA_wen_Whl      <= rfA_wen_X3hl;   // @anton-mel
+      rfA_waddr_Whl    <= rfA_waddr_X3hl; // @anton-mel
+
       cp0_wen_Whl      <= cp0_wen_X3hl;
       cp0_addr_Whl     <= cp0_addr_X3hl;
 
@@ -1369,7 +1390,7 @@ module parc_CoreCtrl
 
   // Only set register file wen if stage is valid
 
-  assign rf0_wen_out_Whl = ( inst_val_Whl && !stall_Whl && rf0_wen_Whl );
+  assign rfA_wen_out_Whl = ( inst_val_Whl && !stall_Whl && rfA_wen_Whl ); // @anton-mel: rename wires
 
   // Dummy squash and stall signals
 
