@@ -81,7 +81,7 @@ module parc_CoreCtrl
 
   // CP0 Status
   
-  output [31:0] cp0_status,
+  output reg [31:0] cp0_status,
 
   // @anton-mel: add bypass signals
   // !NOTE: should fix to be scoreboarding.
@@ -1394,7 +1394,7 @@ module parc_CoreCtrl
   // Coprocessor 0
   //----------------------------------------------------------------------
 
-  reg  [31:0] cp0_status;
+  // reg  [31:0] cp0_status;
   reg         cp0_stats;
 
   always @ ( posedge clk ) begin
