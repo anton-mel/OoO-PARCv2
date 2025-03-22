@@ -88,23 +88,13 @@ module parc_CoreCtrl
 
   // CP0 Status
   
-  output reg [31:0] cp0_status,
-
-  // @anton-mel: add bypass signals
-  // !NOTE: should fix to be scoreboarding.
-  output  [3:0] op00_byp_mux_sel_Dhl,
-  output  [3:0] op01_byp_mux_sel_Dhl,
-  output  [3:0] op10_byp_mux_sel_Dhl,
-  output  [3:0] op11_byp_mux_sel_Dhl
+  output reg [31:0] cp0_status
 );
 
   //----------------------------------------------------------------------
   // PC Stage: Instruction Memory Request
   //----------------------------------------------------------------------
 
-  // @anton-mel: this output signals 
-  // when to fetch apply PC offset.
-  // eg. when 2nd istruction is done
   assign pc_offset_mux_sel_Dhl = steering_mux_sel;
 
   // PC Mux Select
@@ -234,8 +224,6 @@ module parc_CoreCtrl
   reg [31:0] ir1_Dhl;
   reg        bubble_Dhl;
 
-  // here should probably use stall_0_dhl
-  // and stall_1_dhl to stall pipelines.
   // This line is for flushing if branch/ jumps.
   wire squash_first_D_inst =
     (inst_val_Dhl && !stall_0_Dhl && stall_1_Dhl);
@@ -608,6 +596,71 @@ module parc_CoreCtrl
   reg steering_mux_sel; // switch per each cycle 
                         // and stall when needed (add later).
 
+/* 
+
+  // Stalling
+
+  // ALU if
+  // 1. The branch field is not activated
+  // 2. Not a special CP0 instruction
+  // 3. Not related to the MULDIV block
+  // 4. Does not require memory access (nr)
+  // 5. The instruction is not a jump
+  
+  wire is_instr0_alu
+    =  (cs0[`PARC_INST_MSG_BR_SEL] == br_none)
+    && !cs0[`PARC_INST_MSG_CP0_WEN]
+    && !cs0[`PARC_INST_MSG_MULDIV_EN]
+    && (cs0[`PARC_INST_MSG_MEM_REQ] == nr)
+    && !cs0[`PARC_INST_MSG_J_EN];
+
+  wire is_instr1_alu
+    =  (cs1[`PARC_INST_MSG_BR_SEL] == br_none)
+    && !cs1[`PARC_INST_MSG_CP0_WEN]
+    && !cs1[`PARC_INST_MSG_MULDIV_EN]
+    && (cs1[`PARC_INST_MSG_MEM_REQ] == nr)
+    && !cs1[`PARC_INST_MSG_J_EN];
+
+  // isntr 0 and 1 dep, stall isntr1
+  wire stall_due_to_instr0_instr1_RAW
+    = rf0_wen_Dhl 
+      && (
+        (rs1_en_Dhl && (rf0_waddr_Dhl == rs1_addr_Dhl)) 
+        || (rt1_en_Dhl && (rf0_waddr_Dhl == rt1_addr_Dhl))
+      );
+
+  // W to the same reg (stall isntr1)
+  wire stall_due_to_instr0_instr1_WAW
+    = rf0_wen_Dhl 
+      && rf1_wen_Dhl 
+      && (rf0_waddr_Dhl == rf1_waddr_Dhl);
+
+  wire stall_steering = stall_A_Dhl || stall_B_Dhl;
+  // this is the only conditions when the pipeline B is not 
+  // able to skip hazards by dublicating the registers, 
+  // so we need to handle the hazard first.
+  wire hazard_Dhl     = ( !is_instr0_alu && !is_instr1_alu ) || 
+                          stall_due_to_instr0_instr1_RAW     || 
+                          stall_due_to_instr0_instr1_WAW; 
+
+  // From the Spec Prosessor Description 3.4 (Steering Logic Table)  
+  // --------------------------------------------------------------
+  // | Inst 0 Type  | Inst 1 Type  | Inst 0 Dest  | Inst 1 Dest   |
+  // --------------------------------------------------------------
+  // |     ALU      |     ALU      |      A       |       B       |
+  // --------------------------------------------------------------
+  // |   n-ALU      |     ALU      |      A       |       B       |
+  // --------------------------------------------------------------
+  // |     ALU      |   n-ALU      |      B       |       A       |
+  // --------------------------------------------------------------
+  // |   n-ALU      |   n-ALU      |      A       | stall, then A |
+  // -------------------------------------------------------------- 
+                 
+*/
+
+  // Actually my bad, stalling part is only needed for Part2... We issue
+  // instructions 1 by 1, so I rushed with this.. It should be simple clock:
+
   always @( posedge clk ) begin
     if ( reset ) begin
       steering_mux_sel <= 1'b1;
@@ -615,14 +668,14 @@ module parc_CoreCtrl
     else begin
       if ((steering_mux_sel == 1'b1 && (stall_1_Dhl || brj_taken_X0hl || brj_taken_Dhl)) || 
           (steering_mux_sel == 1'b0 && stall_0_Dhl)) begin
+          // stall (keep same pipeline)
           steering_mux_sel <= steering_mux_sel;
       end else begin
+          // switch
           steering_mux_sel <= ~steering_mux_sel;
       end
     end
   end
-
-  // OUTPUT: csA => instead of cs0 (fixed all)
 
   always @(*)
   begin
@@ -644,6 +697,23 @@ module parc_CoreCtrl
     end
   end
 
+  // The destination (rd) and source (rs, rt) register 
+  // addresses for instructions in pipeline stages 
+  // A and B based on the selected instructions.
+  wire  [4:0] instA_rs_Dhl = ( steering_mux_sel ) ? 
+                               inst1_rs_Dhl       : 
+                               inst0_rs_Dhl       ;
+
+  wire  [4:0] instA_rt_Dhl = ( steering_mux_sel ) ? 
+                               inst1_rt_Dhl       : 
+                               inst0_rt_Dhl       ;
+
+  wire  [4:0] instA_rd_Dhl = rfA_waddr_Dhl;
+
+  // Pass to Datapath 
+  assign instA_Dhl = irA_Dhl;
+  assign instB_Dhl = irB_Dhl;
+
   // Jump and Branch Controls
  
   wire       brj_taken_Dhl = ( inst_val_Dhl && csA[`PARC_INST_MSG_J_EN] );
@@ -660,6 +730,9 @@ module parc_CoreCtrl
 
   wire [4:0] rs1_addr_Dhl  = inst1_rs_Dhl;
   wire [4:0] rt1_addr_Dhl  = inst1_rt_Dhl;
+
+  wire [4:0] rsA_addr_Dhl  = instA_rs_Dhl;
+  wire [4:0] rtA_addr_Dhl  = instA_rt_Dhl;
 
   wire       rs0_en_Dhl    = cs0[`PARC_INST_MSG_RS_EN];
   wire       rt0_en_Dhl    = cs0[`PARC_INST_MSG_RT_EN];
@@ -795,7 +868,7 @@ module parc_CoreCtrl
 
   // Operand Bypass Mux Select
 
-  assign op00_byp_mux_sel_Dhl
+  wire [3:0] op00_byp_mux_sel_Dhl
     = (rs0_AX0_byp_Dhl) ? am_AX0_byp
     : (rs0_AX1_byp_Dhl) ? am_AX1_byp
     : (rs0_AX2_byp_Dhl) ? am_AX2_byp
@@ -803,7 +876,7 @@ module parc_CoreCtrl
     : (rs0_AW_byp_Dhl)  ? am_AW_byp
     :                     am_r0;
 
-  assign op01_byp_mux_sel_Dhl
+  wire [3:0] op01_byp_mux_sel_Dhl
     = (rt0_AX0_byp_Dhl) ? bm_AX0_byp
     : (rt0_AX1_byp_Dhl) ? bm_AX1_byp
     : (rt0_AX2_byp_Dhl) ? bm_AX2_byp
@@ -811,7 +884,7 @@ module parc_CoreCtrl
     : (rt0_AW_byp_Dhl)  ? bm_AW_byp
     :                     bm_r1;
 
-  assign op10_byp_mux_sel_Dhl
+  wire [3:0] op10_byp_mux_sel_Dhl
     = (rs1_AX0_byp_Dhl) ? am_AX0_byp
     : (rs1_AX1_byp_Dhl) ? am_AX1_byp
     : (rs1_AX2_byp_Dhl) ? am_AX2_byp
@@ -819,7 +892,7 @@ module parc_CoreCtrl
     : (rs1_AW_byp_Dhl)  ? am_AW_byp
     :                     am_r0;
 
-  assign op11_byp_mux_sel_Dhl
+  wire [3:0] op11_byp_mux_sel_Dhl
     = (rt1_AX0_byp_Dhl) ? bm_AX0_byp
     : (rt1_AX1_byp_Dhl) ? bm_AX1_byp
     : (rt1_AX2_byp_Dhl) ? bm_AX2_byp
@@ -999,12 +1072,16 @@ module parc_CoreCtrl
   // @anton-mel: here we go, i think this is where the stall should be segragated.
   wire stall_0_Dhl = (stall_X0hl || stall_0_muldiv_use_Dhl || stall_0_load_use_Dhl);
   wire stall_1_Dhl = (stall_X0hl || stall_1_muldiv_use_Dhl || stall_1_load_use_Dhl);
-  assign stall_Dhl = stall_0_Dhl || stall_1_Dhl;
-  // !NOTE: I think this is WRONG..
+  wire stall_A_Dhl = (steering_mux_sel) ? stall_1_Dhl : stall_0_Dhl;
+  // stall occurs if there's a previous stall, an execution stall, 
+  // or if instruction steering and branch conditions are not met.
+  assign stall_Dhl = stall_X0hl || stall_A_Dhl || 
+                  (!steering_mux_sel && !brj_taken_X0hl && !brj_taken_Dhl && inst_val_Dhl);
+  // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
   // Next bubble bit
 
-  wire bubble_sel_Dhl  = ( squash_Dhl || stall_Dhl ); // @anton-mel: FIX!
+  wire bubble_sel_Dhl  = ( squash_Dhl || stall_A_Dhl );
   wire bubble_next_Dhl = ( !bubble_sel_Dhl ) ? bubble_Dhl
                        : ( bubble_sel_Dhl )  ? 1'b1
                        :                       1'bx;
@@ -1017,7 +1094,7 @@ module parc_CoreCtrl
   reg [31:0] irB_X0hl; // @anton-mel
 
   reg  [2:0] br_sel_X0hl;
-  // reg  [3:0] aluA_fn_X0hl; // @anton-mel updated to aluA_fn_X0hl
+  // reg  [3:0] aluA_fn_X0hl;
   reg        muldivreq_val_X0hl;
   reg  [2:0] muldivreq_msg_fn_X0hl;
   reg        muldiv_mux_sel_X0hl;
@@ -1581,7 +1658,7 @@ module parc_CoreCtrl
 
         // Count instructions for every cycle not squashed or stalled
 
-        if ( inst_val_Dhl && !stall_Dhl ) begin
+        if ( inst_val_Dhl && !stall_A_Dhl ) begin
           num_inst = num_inst + 1;
         end
 
