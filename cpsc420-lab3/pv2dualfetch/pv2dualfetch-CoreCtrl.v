@@ -266,12 +266,12 @@ module parc_CoreCtrl
   localparam pm_r   = 2'd3;  // Use jump register
 
   // Operand 0 Bypass Mux Select
-  localparam am_r0    = 4'd0; // Use rdata0
+  localparam am_r0    = 4'd0;   // Use rdata0
   localparam am_AX0_byp = 4'd1; // Bypass from X0
   localparam am_AX1_byp = 4'd2; // Bypass from X1
   localparam am_AX2_byp = 4'd3; // Bypass from X2
   localparam am_AX3_byp = 4'd4; // Bypass from X3
-  localparam am_AW_byp = 4'd5; // Bypass from W
+  localparam am_AW_byp = 4'd5;  // Bypass from W
   localparam am_BX0_byp = 4'd6; // Bypass from X0
   localparam am_BX1_byp = 4'd7; // Bypass from X1
   localparam am_BX2_byp = 4'd8; // Bypass from X2
@@ -291,7 +291,7 @@ module parc_CoreCtrl
   localparam bm_AX1_byp = 4'd2; // Bypass from X1
   localparam bm_AX2_byp = 4'd3; // Bypass from X2
   localparam bm_AX3_byp = 4'd4; // Bypass from X3
-  localparam bm_AW_byp = 4'd5; // Bypass from W
+  localparam bm_AW_byp = 4'd5;  // Bypass from W
   localparam bm_BX0_byp = 4'd6; // Bypass from X0
   localparam bm_BX1_byp = 4'd7; // Bypass from X1
   localparam bm_BX2_byp = 4'd8; // Bypass from X2
@@ -884,7 +884,6 @@ module parc_CoreCtrl
   wire [1:0] op10_mux_sel_Dhl = cs1[`PARC_INST_MSG_OP0_SEL];
   wire [2:0] op11_mux_sel_Dhl = cs1[`PARC_INST_MSG_OP1_SEL];
 
-  // @anton-mel
   assign opA0_mux_sel_Dhl = csA[`PARC_INST_MSG_OP0_SEL];
   assign opA1_mux_sel_Dhl = csA[`PARC_INST_MSG_OP1_SEL];
 
@@ -893,12 +892,12 @@ module parc_CoreCtrl
   assign opA1_byp_mux_sel_Dhl = steering_mux_sel ? op11_byp_mux_sel_Dhl : op01_byp_mux_sel_Dhl;
 
   // ALU Function
-  // @anton-mel (both have the ALU module)
+  // (both have the ALU module)
   wire [3:0] alu0_fn_Dhl = cs0[`PARC_INST_MSG_ALU_FN];
   wire [3:0] aluA_fn_Dhl = csA[`PARC_INST_MSG_ALU_FN];
 
   // Muldiv Function
-  // @anton-mel: only aluA has muldiv, so no cs0 is needed
+  // only aluA has muldiv, so no cs0 is needed
   wire [2:0] muldivreq_msg_fn_Dhl = csA[`PARC_INST_MSG_MULDIV_FN];
 
   // Muldiv Controls
@@ -1037,7 +1036,10 @@ module parc_CoreCtrl
   wire stall_0_Dhl = (stall_X0hl || stall_0_muldiv_use_Dhl || stall_0_load_use_Dhl);
   wire stall_1_Dhl = (stall_X0hl || stall_1_muldiv_use_Dhl || stall_1_load_use_Dhl);
   wire stall_A_Dhl = (steering_mux_sel) ? stall_1_Dhl : stall_0_Dhl;
-  wire stall_Dhl = stall_X0hl || stall_A_Dhl || !steering_mux_sel;
+  // stall occurs if there's a previous stall, an execution stall, 
+  // or if instruction steering and branch conditions are not met.
+  wire stall_Dhl = stall_X0hl || stall_A_Dhl || 
+                  (!steering_mux_sel && !brj_instr1_X0hl && !brj_instr1_Dhl && inst_val_Dhl);
   // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
   // Next bubble bit
@@ -1549,7 +1551,7 @@ module parc_CoreCtrl
   reg overload = 1'b0;
 
   always @ ( posedge clk ) begin
-    if (( !cs0[`PARC_INST_MSG_INST_VAL] && !reset ) 
+    if (( !cs0[`PARC_INST_MSG_INST_VAL] && !reset )
      || ( !cs1[`PARC_INST_MSG_INST_VAL] && !reset )) begin
       $display(" RTL-ERROR : %m : Illegal instruction!");
 
