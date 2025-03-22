@@ -49,26 +49,26 @@ module parc_CoreCtrl
   // @ayushkt: I made a lot of these registers because 
   // they were originally declared as registers before, 
   // but wires here. Maybe this is wrong, but got rid of make errors...
-  output  [3:0]     aluA_fn_X0hl,           // assigned (error?)
-  output  [3:0]     aluB_fn_X0hl,           // assigned (error?)
-  output  [2:0]     muldivreq_msg_fn_Dhl,   // assigned
+  output reg [3:0]  aluA_fn_X0hl,           // assigned
+  output reg [3:0]  aluB_fn_X0hl,           // assigned
+  output [2:0]      muldivreq_msg_fn_Dhl,   // assigned
   output            muldivreq_val,          // assigned
 
   input             muldivreq_rdy,
   input             muldivresp_val,
   output            muldivresp_rdy,         // check here?
   output            muldiv_stall_mult1,     // assigned
-  output  [2:0]     dmemresp_mux_sel_X1hl,  // assigned (error?)
+  output reg [2:0]  dmemresp_mux_sel_X1hl,  // assigned
   output            dmemresp_queue_en_X1hl, // assigned
-  output            dmemresp_queue_val_X1hl,// assigned (error?)
-  output            muldiv_mux_sel_X3hl,    // assigned (error?)
-  output            execute_mux_sel_X3hl,   // assigned (error?)
-  output            memex_mux_sel_X1hl,     // assigned (error?)
+  output reg        dmemresp_queue_val_X1hl,// assigned
+  output reg        muldiv_mux_sel_X3hl,    // assigned
+  output reg        execute_mux_sel_X3hl,   // assigned
+  output reg        memex_mux_sel_X1hl,     // assigned
 
   output            rfA_wen_out_Whl,        // assigned
-  output  [4:0]     rfA_waddr_Whl,          // assigned (error?)
+  output reg [4:0]  rfA_waddr_Whl,          // assigned
   output            rfB_wen_out_Whl,        // assigned
-  output  [4:0]     rfB_waddr_Whl,          // assigned (error?)
+  output reg [4:0]  rfB_waddr_Whl,          // assigned
 
   output            stall_Fhl,              // assigned
   output            stall_Dhl,              // assigned
@@ -85,7 +85,7 @@ module parc_CoreCtrl
   input  [31:0]     proc2cop_data_Whl,
 
   // CP0 Status
-  output [31:0]     cp0_status              // assigned (error?)
+  output reg [31:0] cp0_status              // assigned
 
   // @anton-mel: add bypass signals
   // !NOTE: should fix to be scoreboarding.
@@ -898,7 +898,7 @@ module parc_CoreCtrl
 
   // Muldiv Function
   // only aluA has muldiv, so no cs0 is needed
-  wire [2:0] muldivreq_msg_fn_Dhl = csA[`PARC_INST_MSG_MULDIV_FN];
+  assign muldivreq_msg_fn_Dhl = csA[`PARC_INST_MSG_MULDIV_FN];
 
   // Muldiv Controls
   wire muldivreq_val_Dhl = csA[`PARC_INST_MSG_MULDIV_EN];
@@ -1038,7 +1038,7 @@ module parc_CoreCtrl
   wire stall_A_Dhl = (steering_mux_sel) ? stall_1_Dhl : stall_0_Dhl;
   // stall occurs if there's a previous stall, an execution stall, 
   // or if instruction steering and branch conditions are not met.
-  wire stall_Dhl = stall_X0hl || stall_A_Dhl || 
+  assign stall_Dhl = stall_X0hl || stall_A_Dhl || 
                   (!steering_mux_sel && !brj_instr1_X0hl && !brj_instr1_Dhl && inst_val_Dhl);
   // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
@@ -1055,7 +1055,7 @@ module parc_CoreCtrl
   reg [31:0] irA_X0hl;
   reg [31:0] irB_X0hl;
   reg  [2:0] br_sel_X0hl;
-  reg  [3:0] aluA_fn_X0hl;
+  // reg  [3:0] aluA_fn_X0hl;
   reg        muldivreq_val_X0hl;
   reg  [2:0] muldivreq_msg_fn_X0hl;
   reg        muldiv_mux_sel_X0hl;
@@ -1184,8 +1184,8 @@ module parc_CoreCtrl
   reg        is_load_X1hl;
   reg        is_muldiv_X1hl;
   reg        dmemreq_val_X1hl;
-  reg  [2:0] dmemresp_mux_sel_X1hl;
-  reg        memex_mux_sel_X1hl;
+  // reg  [2:0] dmemresp_mux_sel_X1hl;
+  // reg        memex_mux_sel_X1hl;
   reg        execute_mux_sel_X1hl;
   reg        muldiv_mux_sel_X1hl;
 
@@ -1264,7 +1264,7 @@ module parc_CoreCtrl
   reg [31:0] irB_X2hl;
 
   reg        is_muldiv_X2hl;
-  reg        dmemresp_queue_val_X1hl;
+  // reg        dmemresp_queue_val_X1hl; // has already been defined
 
   // @anton-mel: need 
   // to add rfA_wen_X2hl
@@ -1336,8 +1336,8 @@ module parc_CoreCtrl
 
   reg        cp0_wen_X3hl;
   reg  [4:0] cp0_addr_X3hl;
-  reg        execute_mux_sel_X3hl;
-  reg        muldiv_mux_sel_X3hl;
+  // reg        execute_mux_sel_X3hl;
+  // reg        muldiv_mux_sel_X3hl;
 
   reg        bubble_X3hl;
 
@@ -1392,7 +1392,7 @@ module parc_CoreCtrl
   // @anton-mel: need 
   // to add rfA_wen_Whl
   reg        rfA_wen_Whl;
-  reg  [4:0] rfA_waddr_Whl;
+  // reg  [4:0] rfA_waddr_Whl;
 
   reg        cp0_wen_Whl;
   reg  [4:0] cp0_addr_Whl;
@@ -1430,7 +1430,7 @@ module parc_CoreCtrl
 
   // Dummy squash and stall signals
   wire squash_Whl = 1'b0;
-  wire stall_Whl  = 1'b0;
+  assign stall_Whl  = 1'b0;
 
   //----------------------------------------------------------------------
   // Debug registers for instruction disassembly
@@ -1450,7 +1450,7 @@ module parc_CoreCtrl
   // Coprocessor 0
   //----------------------------------------------------------------------
 
-  reg  [31:0] cp0_status;
+  // reg  [31:0] cp0_status;
   reg         cp0_stats;
 
   always @ ( posedge clk ) begin
