@@ -17,4 +17,5 @@ In this lab, we create a two-wide superscalar in-order processor. We are provide
 working datapath of such processor, and we add the processor control logic, instruction steering
 logic, and a scoreboard to enable your processor to properly execute two instructions per cycle.
 
-![MulDiv & Bypassing Data Path Diagram](static/superscalar2wide.png)
+![MulDiv & Bypassing Data Path Diagram](static/superscalar2wide1issue.png)
+![MulDiv & Bypassing Data Path Diagram](static/superscalar2wide2issue.png)
