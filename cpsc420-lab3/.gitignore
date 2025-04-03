@@ -1,12 +1,7 @@
-build/*.out
-build/imuldiv-iterative-sim
-build/mcparc-randdelay-sim
-build/mcparc-sim
-build/pv2byp-randdelay-sim
-build/pv2byp-sim
-build/pv2dualfetch-randdelay-sim
-build/pv2dualfetch-sim
-build/pv2stall-randdelay-sim
-build/pv2stall-sim
+build/*
+!build/
+!build/compile_test.sh
+!build/Makefile
+!build/template.sav
 tests/build/vmh/*.vcd
 ubmark/build/vmh/*.vcd
