@@ -5,7 +5,7 @@
 `ifndef PARC_CORE_CTRL_V
 `define PARC_CORE_CTRL_V
 
-`include "pv2dualfetch-InstMsg.v"
+`include "pv2ssc-InstMsg.v"
 
 module parc_CoreCtrl
 (
