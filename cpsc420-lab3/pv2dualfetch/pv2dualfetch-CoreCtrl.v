@@ -1142,7 +1142,7 @@ module parc_CoreCtrl
 
   // Muldiv Controls
 
-  wire muldivreq_val_Dhl = csA[`PARC_INST_MSG_MULDIV_EN];
+  wire muldivreq_val_Dhl = csA[`PARC_INST_MSG_MULDIV_EN] && !stall_A_Dhl;
 
   // Muldiv Mux Select
 
