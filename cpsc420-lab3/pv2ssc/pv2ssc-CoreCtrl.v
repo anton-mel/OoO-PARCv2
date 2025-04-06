@@ -595,6 +595,7 @@ module parc_CoreCtrl
   // @anton-mel: handle Pipeline A. 
   reg steering_mux_sel; // switch per each cycle 
                         // and stall when needed (add later).
+  reg instA_dispatched_notB;
 
   // Scoreboard Register Layout (6 bits total)
   // Note: I removed the valid bit.
@@ -1221,7 +1222,7 @@ module parc_CoreCtrl
   // or if instruction steering and branch conditions are not met.
   // assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || 
   //                 (!steering_mux_sel && !(inst_val_X0hl && brj_taken_X0hl) && !brj_taken_Dhl && inst_val_Dhl);
-  assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || hazard_Dhl;
+  assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || (hazard_Dhl && !instA_dispatched_notB);
   // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
   // Next bubble bit
@@ -1272,11 +1273,9 @@ module parc_CoreCtrl
     end
     else if( !stall_X0hl ) begin
       irA_X0hl              <= irA_Dhl; // @anton-mel
-      irB_X0hl              <= irB_Dhl; // @anton-mel
 
       br_sel_X0hl           <= br_sel_Dhl; 
       aluA_fn_X0hl          <= aluA_fn_Dhl; // @anton-mel: update to aluA_fn_Dhl
-      aluB_fn_X0hl          <= aluB_fn_Dhl;
 
       muldivreq_val_X0hl    <= muldivreq_val_Dhl;
       muldivreq_msg_fn_X0hl <= muldivreq_msg_fn_Dhl;
@@ -1292,8 +1291,17 @@ module parc_CoreCtrl
 
       rfA_wen_X0hl          <= (rfA_waddr_Dhl) ? rfA_wen_Dhl : 0;   // @anton-mel
       rfA_waddr_X0hl        <= rfA_waddr_Dhl; // @anton-mel
-      rfB_wen_X0hl          <= (rfB_waddr_Dhl) ? rfB_wen_Dhl : 0;
-      rfB_waddr_X0hl        <= rfB_waddr_Dhl;
+
+      if (!(stall_B_Dhl || (hazard_Dhl && !instA_dispatched_notB))) begin
+        irB_X0hl       <= irB_Dhl;
+        aluB_fn_X0hl   <= aluB_fn_Dhl;
+        rfB_wen_X0hl   <= (rfB_waddr_Dhl) ? rfB_wen_Dhl : 0;
+        rfB_waddr_X0hl <= rfB_waddr_Dhl;
+        instA_dispatched_notB <= 1'b0;
+      end
+      else begin
+        instA_dispatched_notB <= stall_Dhl && !stall_A_Dhl;
+      end
 
       cp0_wen_X0hl          <= cp0_wen_Dhl;
       cp0_addr_X0hl         <= cp0_addr_Dhl;
