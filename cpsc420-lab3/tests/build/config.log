@@ -28,6 +28,9 @@ uname -v = #59~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Mar 19 17:07:41 UTC 2
 /bin/universe          = unknown
 
 PATH: /usr/bin/
+PATH: /home/anton/workspace/cpsc420/cpsc420-lab3/toolchain/local/bin
+PATH: /home/anton/workspace/cpsc420/cpsc420-lab3/toolchain/local/encap/maven-sys-xcc/bin
+PATH: /usr/bin/
 PATH: /home/anton/workspace/cpsc420/cpsc420-lab2/toolchain/local/bin
 PATH: /home/anton/workspace/cpsc420/cpsc420-lab2/toolchain/local/encap/maven-sys-xcc/bin
 PATH: /home/anton/.vscode-server/cli/servers/Stable-2fc07b811f760549dab9be9d2bedd06c51dfcb9a/server/bin/remote-cli
@@ -54,7 +57,7 @@ configure:1785: result: x86_64-unknown-linux-gnu
 configure:1805: checking host system type
 configure:1818: result: mipsmavenel-ucb-elf
 configure:1852: checking for maven-gcc
-configure:1868: found /home/anton/workspace/cpsc420/cpsc420-lab2/toolchain/local/encap/maven-sys-xcc/bin/maven-gcc
+configure:1868: found /home/anton/workspace/cpsc420/cpsc420-lab3/toolchain/local/encap/maven-sys-xcc/bin/maven-gcc
 configure:1879: result: maven-gcc
 configure:2148: checking for C compiler version
 configure:2157: maven-gcc --version >&5
@@ -114,7 +117,7 @@ configure:2614: result: none needed
 configure:2663: checking for a BSD-compatible install
 configure:2731: result: /usr/bin//install -c
 configure:2871: checking for maven-isa-testrun
-configure:2887: found /home/anton/workspace/cpsc420/cpsc420-lab2/toolchain/local/bin/maven-isa-testrun
+configure:2887: found /home/anton/workspace/cpsc420/cpsc420-lab3/toolchain/local/bin/maven-isa-testrun
 configure:2898: result: maven-isa-testrun
 configure:3139: creating ./config.status
 

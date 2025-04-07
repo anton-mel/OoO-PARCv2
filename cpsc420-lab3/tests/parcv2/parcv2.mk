@@ -41,5 +41,6 @@ parcv2_srcs += \
   parcv2-custom-dualissue.S \
   parcv2-custom-raw.S \
   parcv2-custom-waw.S \
+  parcv2-custom-nalu.S \
 #  parcv2-mfc0.S \
 
