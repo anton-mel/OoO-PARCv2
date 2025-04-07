@@ -597,7 +597,6 @@ module parc_CoreCtrl
                         // and stall when needed (add later).
 
   // Scoreboard Register Layout (6 bits total)
-  // Note: I removed the valid bit.
   //   Bit 5     : Pipeline A/B (default: 0)
   //   Bits 4:0  : Pipeline stage bits:
   //               Bit 0 - Stage 0: X0 (Instruction capture/initialization)
