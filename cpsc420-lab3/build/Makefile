@@ -96,6 +96,9 @@ tests = \
   parcv2-subu.vmh \
   parcv2-xori.vmh \
   parcv2-xor.vmh \
+  parcv2-custom-raw.vmh \
+  parcv2-custom-waw.vmh \
+  parcv2-custom-dualissue.vmh \
 
 pv2stall_rtl_sim = pv2stall-sim
 pv2stall_rtl_rand_sim = pv2stall-randdelay-sim
