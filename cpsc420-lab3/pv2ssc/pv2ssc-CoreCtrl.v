@@ -1243,10 +1243,10 @@ module parc_CoreCtrl
   // or if instruction steering and branch conditions are not met.
   // assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || 
   //                 (!steering_mux_sel && !(inst_val_X0hl && brj_taken_X0hl) && !brj_taken_Dhl && inst_val_Dhl);
-  assign stall_Dhl = inst_val_Dhl && (stall_X0hl || stall_A_Dhl || stall_B_Dhl
+  assign stall_Dhl = stall_X0hl || (inst_val_Dhl && (stall_A_Dhl || stall_B_Dhl
                                                  || (hazard_Dhl && !inst0_dispatched)
                                                  || (!is_instr0_alu && !is_instr1_alu && !inst0_dispatched)
-                                                 || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched));
+                                                 || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched)));
   // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
   wire dispatch_0_Dhl = !(stall_X0hl || stall_0_Dhl || inst0_dispatched);
