@@ -656,8 +656,8 @@ module parc_CoreCtrl
     end
   end
 
-  wire [6:0] scoreboard_1e = scoreboard[30];
-  wire [6:0] scoreboard_02 = scoreboard[2];
+  wire [6:0] scoreboard_07 = scoreboard[7];
+  wire [6:0] scoreboard_03 = scoreboard[3];
 
 /*    
 
@@ -762,6 +762,8 @@ module parc_CoreCtrl
 
   wire is_instr0_j_or_br = (cs0[`PARC_INST_MSG_BR_SEL] != br_none)
                           || cs0[`PARC_INST_MSG_J_EN];
+  
+  wire is_instr0_j = cs0[`PARC_INST_MSG_J_EN];
 
   wire is_instr1_j_or_br = (cs1[`PARC_INST_MSG_BR_SEL] != br_none)
                           || cs1[`PARC_INST_MSG_J_EN];
@@ -1243,10 +1245,16 @@ module parc_CoreCtrl
   // or if instruction steering and branch conditions are not met.
   // assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || 
   //                 (!steering_mux_sel && !(inst_val_X0hl && brj_taken_X0hl) && !brj_taken_Dhl && inst_val_Dhl);
-  assign stall_Dhl = stall_X0hl || (inst_val_Dhl && (stall_A_Dhl || stall_B_Dhl
+  assign stall_Dhl = stall_X0hl || (inst_val_Dhl && (stall_A_Dhl || (!is_instr0_j && (
+                                                    stall_B_Dhl
                                                  || (hazard_Dhl && !inst0_dispatched)
                                                  || (!is_instr0_alu && !is_instr1_alu && !inst0_dispatched)
-                                                 || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched)));
+                                                 || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched)
+                                                 ))));
+  // assign stall_Dhl = stall_X0hl || (inst_val_Dhl && (stall_A_Dhl || stall_B_Dhl
+  //                                                || (hazard_Dhl && !inst0_dispatched)
+  //                                                || (!is_instr0_alu && !is_instr1_alu && !inst0_dispatched)
+  //                                                || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched)));
   // wire stall_Dhl = stall_X0hl || stall_A_Dhl;
 
   wire dispatch_0_Dhl = !(stall_X0hl || stall_0_Dhl || inst0_dispatched);
@@ -1256,11 +1264,9 @@ module parc_CoreCtrl
                         || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched));
 
   wire dispatch_A_Dhl = (steering_mux_sel == 1'b0) ? dispatch_0_Dhl
-                      : (steering_mux_sel == 1'b1) ? dispatch_1_Dhl
-                      : 1'b0;
+                                                   : dispatch_1_Dhl;
   wire dispatch_B_Dhl = (steering_mux_sel == 1'b0) ? (dispatch_1_Dhl && is_instr1_alu)
-                      : (steering_mux_sel == 1'b1) ? (dispatch_0_Dhl && is_instr0_alu)
-                      : 1'b0;
+                                                   : (dispatch_0_Dhl && is_instr0_alu);
 
   // Next bubble bit
 
