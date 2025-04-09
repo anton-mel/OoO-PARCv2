@@ -1246,7 +1246,7 @@ module parc_CoreCtrl
   // assign stall_Dhl = stall_X0hl || stall_A_Dhl || stall_B_Dhl || 
   //                 (!steering_mux_sel && !(inst_val_X0hl && brj_taken_X0hl) && !brj_taken_Dhl && inst_val_Dhl);
   assign stall_Dhl = stall_X0hl || (inst_val_Dhl && (stall_A_Dhl || (!is_instr0_j && (
-                                                    stall_B_Dhl
+                                                    (stall_B_Dhl && !(steering_mux_sel && inst0_dispatched))
                                                  || (hazard_Dhl && !inst0_dispatched)
                                                  || (!is_instr0_alu && !is_instr1_alu && !inst0_dispatched)
                                                  || ((is_instr0_j_or_br || is_instr1_j_or_br) && !inst0_dispatched)
