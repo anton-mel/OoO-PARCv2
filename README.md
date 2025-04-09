@@ -13,9 +13,7 @@ In this lab, we extend a pipelined PARCv1 processor into a full-featured PARCv2 
 
 ### Lab3: Superscalar PARCv2 Processor
 
-In this lab, we create a two-wide superscalar in-order processor. We are provided with a
-working datapath of such processor, and we add the processor control logic, instruction steering
-logic, and a scoreboard to enable your processor to properly execute two instructions per cycle.
+In this lab, we extend the pipelined PARCv2 processor from the previous lab into a two-wide superscalar processor. The project is divided into two main parts: first, implementing dual instruction fetch with single-issue logic, and second, enabling full dual-issue execution with appropriate control, steering, and scoreboard logic to manage pipeline constraints and data hazards. The updated processor fetches two instructions per cycle and issues them to corresponding functional units A and B through a combined decode-issue stage. Unit A remains fully functional as in the previous implementation, while unit B supports only simple ALU instructions. In the absence of hazards or dependencies, which we handle since the register file will not, the processor can execute two instructions per cycle in the best case. For some tests and benchmarks, the speedups were present but not significant. For the masked filter and vvadd benchmarks, the improvement was a nearly 25% speedup, showing significant IPC improvement over single-issue pv2long implementations (Table 1). These results underscore how increased parallelism and careful hazard management contribute to throughput gains, while also illustrating tradeoffs with complexity and limitations due to dependency stalls and structural hazards in more complex programs.
 
 ![MulDiv & Bypassing Data Path Diagram](static/superscalar2wide1issue.png)
 ![MulDiv & Bypassing Data Path Diagram](static/superscalar2wide2issue.png)
