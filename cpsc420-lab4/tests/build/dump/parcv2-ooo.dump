@@ -1,5 +1,5 @@
 
-bin/parcv2-blez:     file format elf32-littlemips
+bin/parcv2-ooo:     file format elf32-littlemips
 
 
 Disassembly of section .text:
@@ -7,22 +7,22 @@ Disassembly of section .text:
 00080000 <_test>:
    80000:	70000802 	mul	v0,zero,zero
    80004:	24010005 	li	v0,5
-   80008:	00201021 	move	v1,v0
-   8000c:	241d0013 	li	sp,19
-   80010:	241e0005 	li	at,5
-   80014:	145e0001 	bne	v1,at,8001c <_fail>
+   80008:	00000000 	nop
+   8000c:	00000000 	nop
+   80010:	00000000 	nop
+   80014:	00000000 	nop
+   80018:	00201021 	move	v1,v0
+   8001c:	241d001a 	li	sp,26
+   80020:	241e0005 	li	at,5
+   80024:	145e0001 	bne	v1,at,8002c <_fail>
 
-00080018 <_pass>:
-   80018:	241d0001 	li	sp,1
+00080028 <_pass>:
+   80028:	241d0001 	li	sp,1
 
-0008001c <_fail>:
-   8001c:	24020001 	li	v1,1
-   80020:	409da800 	mtc0	sp,c0_staten
-   80024:	1402ffff 	bne	zero,v1,80024 <_fail+0x8>
-   80028:	00000000 	nop
-   8002c:	00000000 	nop
-   80030:	00000000 	nop
-   80034:	00000000 	nop
+0008002c <_fail>:
+   8002c:	24020001 	li	v1,1
+   80030:	409da800 	mtc0	sp,c0_staten
+   80034:	1402ffff 	bne	zero,v1,80034 <_fail+0x8>
    80038:	00000000 	nop
    8003c:	00000000 	nop
    80040:	00000000 	nop
@@ -61,3 +61,7 @@ Disassembly of section .text:
    800c4:	00000000 	nop
    800c8:	00000000 	nop
    800cc:	00000000 	nop
+   800d0:	00000000 	nop
+   800d4:	00000000 	nop
+   800d8:	00000000 	nop
+   800dc:	00000000 	nop

@@ -1,42 +1,21 @@
 //=========================================================================
-// parcv2-blez.S
+// parcv2-ooo.S
 //=========================================================================
 
 #include "parc-macros.h"
 
         TEST_PARC_BEGIN
 
-        //-----------------------------------------------------------------
-        // Branch tests
-        //-----------------------------------------------------------------
+          // 1) slow MUL → writes $1 = 0 (4-cycle latency)
+          MUL    $1, $0, $0
 
-        TEST_BR1_OP_TAKEN( blez, 0 )
-        TEST_BR1_OP_TAKEN( blez, -1 )
+          // 2) fast ADDIU → writes $1 = 5 (1-cycle latency)
+          ADDIU  $1, $0, 5
 
-        TEST_BR1_OP_NOTTAKEN( blez, 1  )
-        TEST_BR1_OP_NOTTAKEN( blez, 10 )
+          // 3) copy result into $2
+          ADDU   $2, $1, $0
 
-        //-----------------------------------------------------------------
-        // Bypassing tests
-        //-----------------------------------------------------------------
-
-        TEST_BR1_SRC0_BYP( 0, blez, 1 )
-        TEST_BR1_SRC0_BYP( 1, blez, 1 )
-        TEST_BR1_SRC0_BYP( 2, blez, 1 )
-
-        //-----------------------------------------------------------------
-        // Test that there is no branch delay slot
-        //-----------------------------------------------------------------
-
-        li    $2, 1
-        blez  $0, 1f
-        addiu $2, 1
-        addiu $2, 1
-        addiu $2, 1
-        addiu $2, 1
-    1:  addiu $2, 1
-        addiu $2, 1
-        TEST_CHECK_EQ( $2, 3 )
+          // 4) must be 5 (fails on I2O2, passes once you have in-order ROB)
+          TEST_CHECK_EQ( $2, 5 )
 
         TEST_PARC_END
-
