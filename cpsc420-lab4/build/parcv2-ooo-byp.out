@@ -1,10 +1,10 @@
 WARNING: ../pv2byp/pv2byp-sim.v:154: $readmemh: Standard inconsistency, following 1364-2005.
-VCD info: dumpfile ../tests/build/vmh/parcv2-blez.vcd opened for output.
+VCD info: dumpfile ../tests/build/vmh/parcv2-ooo.vcd opened for output.
 *** PASSED ***
 --------------------------------------------
  STATS                                      
 --------------------------------------------
  status     =          1
- num_cycles =         46
- num_inst   =         10
- ipc        = 0.217391
+ num_cycles =         50
+ num_inst   =         14
+ ipc        = 0.280000
