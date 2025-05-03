@@ -76,8 +76,8 @@ module parc_CoreScoreboard
     else if (reg_latency[src0] == 6'b000001)
       src0_byp_mux_sel = 3'd4;
     else if (reg_latency[src0] == 6'b000000)
-      // src0_byp_mux_sel = 3'd5; // UNCOMMENT THIS WHEN YOUR ROB IS READY!
-      src0_byp_mux_sel = 3'd0;   // DELETE THIS WHEN YOUR ROB IS READY!
+      src0_byp_mux_sel = 3'd5; // UNCOMMENT THIS WHEN YOUR ROB IS READY!
+      // src0_byp_mux_sel = 3'd0;   // DELETE THIS WHEN YOUR ROB IS READY!
     else
       src0_byp_mux_sel = functional_unit[src0];
   end
@@ -88,8 +88,8 @@ module parc_CoreScoreboard
     else if (reg_latency[src1] == 6'b000001)
       src1_byp_mux_sel = 3'd4;
     else if (reg_latency[src1] == 6'b000000)
-      // src1_byp_mux_sel = 3'd5; // UNCOMMENT THIS WHEN YOUR ROB IS READY!
-      src1_byp_mux_sel = 3'd0;   // DELETE THIS WHEN YOUR ROB IS READY!
+      src1_byp_mux_sel = 3'd5; // UNCOMMENT THIS WHEN YOUR ROB IS READY!
+      // src1_byp_mux_sel = 3'd0;   // DELETE THIS WHEN YOUR ROB IS READY!
     else
       src1_byp_mux_sel = functional_unit[src1];
   end
