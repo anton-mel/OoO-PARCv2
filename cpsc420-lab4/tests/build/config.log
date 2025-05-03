@@ -30,8 +30,13 @@ uname -v = #59~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Mar 19 17:07:41 UTC 2
 PATH: /usr/bin/
 PATH: /home/anton/workspace/cpsc420/cpsc420-lab4/toolchain/local/bin
 PATH: /home/anton/workspace/cpsc420/cpsc420-lab4/toolchain/local/encap/maven-sys-xcc/bin
+PATH: /usr/bin/
+PATH: /home/anton/workspace/cpsc420/cpsc420-lab4/toolchain/local/bin
+PATH: /home/anton/workspace/cpsc420/cpsc420-lab4/toolchain/local/encap/maven-sys-xcc/bin
+PATH: /home/anton/.vscode-server/cli/servers/Stable-2fc07b811f760549dab9be9d2bedd06c51dfcb9a/server/bin/remote-cli
 PATH: /home/anton/.local/bin
 PATH: /home/anton/.cargo/bin
+PATH: /home/anton/.local/bin
 PATH: /usr/local/sbin
 PATH: /usr/local/bin
 PATH: /usr/sbin
