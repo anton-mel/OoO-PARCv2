@@ -583,10 +583,16 @@ module parc_CoreCtrl
 
   // Aggregate Stall Signal
 
-  wire stall_spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
+  // @anton: THIS HAS TO BE REMOVED END OF THE DAY
+  // wire stall_spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
 
+  // TODO
+  // Currently, the base processor in pv2spec stalls the decode stage whenever a branch instruction is present in
+  // I. This avoids speculative instructions entirely. Once your ROB can support speculation, you should remove
+  // the stall_spec_Dhl signal in pv2spec-CoreCtrl.v to allow speculative instructions to exist. You should
+  // also make the same changes to the scoreboard and register file from Part 1.
   assign non_sb_stall_Dhl = ( stall_Ihl ||
-                       stall_spec_Dhl ||
+                      //  stall_spec_Dhl ||
                       (inst_val_Dhl && !rob_req_rdy_Dhl));
 
   assign stall_Dhl = non_sb_stall_Dhl || (inst_val_Dhl && stall_sb_Dhl );
@@ -601,6 +607,13 @@ module parc_CoreCtrl
   //----------------------------------------------------------------------
   // I <- D
   //----------------------------------------------------------------------
+
+  // TODO 
+  
+  // In this new processor, entries in the scoreboard and ROB are still be allocated in the decode
+  // stage. However, they must now pass through the I stage before being sent down an execution pipeline. This
+  // creates a window where an instruction in I becomes invalid after a branch is taken in X. Adding speculation
+  // to the ROB resolves this issue.
 
   reg [31:0] ir_Ihl;
   reg  [2:0] br_sel_Ihl;
@@ -657,6 +670,13 @@ module parc_CoreCtrl
   // Is the current stage valid?
 
   wire inst_val_Ihl = ( !bubble_Ihl && !squash_Ihl );
+
+  // EXTRAWIRING FOR THE SPECULATION
+  // @anton-mel: WIRE FOR THE SPEC ENABLE
+  wire spec_en_Dhl = inst_val_Dhl && inst_val_Ihl && (br_sel_Ihl != br_none);
+  // @anton-mel: when a branch in X resolves (whether taken or not)
+  wire br_res_val  = inst_val_Xhl && (br_sel_Xhl != br_none);
+  wire br_res_taken= any_br_taken_Xhl; // true only if actually taken
 
   // Dummy squash signal
 
@@ -1053,6 +1073,7 @@ module parc_CoreCtrl
     .clk                       (clk),
     .reset                     (reset),
     .rob_alloc_req_val         (rob_req_val_Dhl),
+    .rob_alloc_req_spec        (spec_en_Dhl),
     .rob_alloc_req_rdy         (rob_req_rdy_Dhl),
     .rob_alloc_req_preg        (rf_waddr_Dhl),
     .rob_alloc_resp_slot       (rob_fill_slot_Dhl),
@@ -1060,7 +1081,11 @@ module parc_CoreCtrl
     .rob_fill_slot             (rob_fill_slot_Whl),
     .rob_commit_slot           (rob_commit_slot_Chl),
     .rob_commit_wen            (rob_commit_wen_Chl),
-    .rob_commit_rf_waddr       (rob_commit_waddr_Chl)
+    .rob_commit_rf_waddr       (rob_commit_waddr_Chl),
+    // rob instantiation:
+    .branch_resolve_val        (br_res_val),
+    .branch_resolve_slot       (rob_fill_slot_Xhl),
+    .branch_resolve_taken      (br_res_taken)
   );
 
   //----------------------------------------------------------------------
