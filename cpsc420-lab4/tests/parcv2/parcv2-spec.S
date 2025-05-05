@@ -6,9 +6,9 @@
 
         TEST_PARC_BEGIN
 
-          xor $1, $1, $1
+          li    $1, 0
           bne   $1, 0, 1f
           addiu $1, $1, 1
-      1:  TEST_CHECK_EQ( $1, 31 )
+      1:  TEST_CHECK_EQ( $1, 1 )
 
         TEST_PARC_END
