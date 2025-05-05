@@ -578,8 +578,19 @@ module parc_CoreCtrl
   //----------------------------------------------------------------------
 
   // Squash instruction in D if a valid branch in X is taken
-
   wire squash_Dhl = ( inst_val_Xhl && brj_taken_Xhl );
+
+  // Squash instruction in I if a valid branch in X is taken
+  wire squash_Ihl = ( inst_val_Xhl && brj_taken_Xhl );
+
+  // Don't squash the branch instruction itself in X
+  wire squash_Xhl = 1'b0;
+
+  // Don't squash instructions in M that were fetched before the branch
+  wire squash_Mhl = 1'b0;
+
+  // Don't squash instructions in W that were fetched before the branch
+  wire squash_Whl = 1'b0;
 
   // Aggregate Stall Signal
 
@@ -680,7 +691,7 @@ module parc_CoreCtrl
 
   // Dummy squash signal
 
-  wire squash_Ihl = 1'b0;
+  // wire squash_Ihl = 1'b0;
 
   // Stall Signal
 
@@ -796,7 +807,7 @@ module parc_CoreCtrl
 
   // Dummy Squash Signal
 
-  wire squash_Xhl = 1'b0;
+  // wire squash_Xhl = 1'b0;
 
   // Stall in X if imem is not ready
 
@@ -876,7 +887,7 @@ module parc_CoreCtrl
 
   // Dummy Squash Signal
 
-  wire squash_Mhl = 1'b0;
+  // wire squash_Mhl = 1'b0;
 
   // Stall in M if memory response is not returned for a valid request
 
@@ -1050,7 +1061,7 @@ module parc_CoreCtrl
 
   // Dummy squahs and stall signals
 
-  wire squash_Whl = 1'b0;
+  // wire squash_Whl = 1'b0;
   assign stall_Whl  = 1'b0;
   
   //----------------------------------------------------------------------
@@ -1064,9 +1075,12 @@ module parc_CoreCtrl
 
   assign rob_fill_wen_Whl = inst_val_Whl && rf_wen_Whl;
 
-  // wire [3:0] rob_commit_slot_Chl; (declared as output)
-  // wire       rob_commit_wen_Chl; (declared as output)
-  // wire [4:0] rob_commit_waddr_Chl; (declared as output)
+  // Commit when:
+  // 1. Instruction is valid
+  // 2. Instruction is not squashed
+  // 3. Instruction writes to a register
+  // 4. Instruction is at the head of the ROB
+  // assign rob_commit_wen_Chl = inst_val_Whl && !squash_Whl && rf_wen_Whl;
 
   parc_CoreReorderBuffer rob
   (
@@ -1174,6 +1188,21 @@ module parc_CoreCtrl
     end
   end
 
+  `endif
+
+//========================================================================
+// Debug
+//========================================================================
+
+  `ifndef SYNTHESIS
+  // Enhanced debug for BNE
+  always @(posedge clk) begin
+    if (inst_val_Xhl && br_sel_Xhl == br_bne) begin
+      $display("BNE resolved: eq=%b, taken=%b, br_taken=%b, br_sel=%b, stall=%b%b%b", 
+              branch_cond_eq_Xhl, bne_taken_Xhl, any_br_taken_Xhl, br_sel_Xhl,
+              stall_Dhl, stall_Ihl, stall_Xhl);
+    end
+  end
   `endif
 
 //========================================================================
