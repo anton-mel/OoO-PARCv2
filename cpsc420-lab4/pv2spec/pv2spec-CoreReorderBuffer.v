@@ -32,46 +32,50 @@ module parc_CoreReorderBuffer
 
   reg[ 3:0]  rob_head;
   reg[ 3:0]  rob_tail;
+  reg [3:0]  rob_count;
+
+  localparam ROB_SIZE = 16;  // Define ROB size
 
   reg[ 15:0] rob_valid;
   reg[ 15:0] rob_pending;
   reg [15:0] rob_spec; // <-- speculation bit
   reg[ 4:0] rob_physical_register [ 15:0];
 
-  // allocation logic
-  assign rob_alloc_req_rdy   = (!rob_valid[rob_tail]);
+  assign rob_commit_rf_waddr = rob_physical_register[rob_head];
+  assign rob_commit_slot     = rob_head;
+
+// allocation logic
+  assign rob_alloc_req_rdy   = (rob_count != ROB_SIZE); // ROB is not full
   assign rob_alloc_resp_slot = rob_tail;
 
   // commit logic
   assign rob_commit_wen      = !rob_pending[rob_head]
                                && rob_valid[rob_head]
-                               && !rob_spec[rob_head]; // <- updated
-  assign rob_commit_rf_waddr = rob_physical_register[rob_head];
-  assign rob_commit_slot     = rob_head;
+                               && !rob_spec[rob_head];
 
   integer i;
   always @(posedge clk) begin
     if (reset) begin
       rob_head    <= 4'b0;
       rob_tail    <= 4'b0;
+      rob_count   <= 4'b0;    // Initialize ROB count
       rob_pending <= 16'b0;
       rob_valid   <= 16'b0;
       rob_spec    <= 16'd0;
     end else begin
       // 1) Branch resolution: on any branch resolution, clear or squash
       if (branch_resolve_val) begin
-        if (branch_resolve_taken) begin
-          // squash *all* speculative entries
-          for (i = 0; i < 16; i = i + 1) begin
-            if (rob_spec[i]) begin
-              rob_valid[i]   <= 1'b0;
-              rob_pending[i] <= 1'b0;
-              rob_spec[i]    <= 1'b0;
-            end
+        // Always squash speculative entries *after* the branch
+        for (i = 0; i < 16; i = i + 1) begin
+          if (i > branch_resolve_slot && rob_spec[i]) begin
+            rob_valid[i]   <= 1'b0;
+            rob_pending[i] <= 1'b0;
+            rob_spec[i]    <= 1'b0;
           end
-        end else begin
-          // mis-speculated? No: just clear speculation flags
-          rob_spec <= 16'd0;
+        end
+        // Clear speculation bit for the resolved branch *only if mispredicted*
+        if (!branch_resolve_taken) begin
+            rob_spec[branch_resolve_slot] <= 1'b0;
         end
       end
 
@@ -82,9 +86,10 @@ module parc_CoreReorderBuffer
         rob_spec[rob_tail]             <= rob_alloc_req_spec;
         rob_physical_register[rob_tail]<= rob_alloc_req_preg;
         rob_tail                       <= rob_tail + 4'd1;
+        rob_count                      <= rob_count + 4'd1;  // Increment ROB count
       end
 
-      // 3) Mark an entry “finished” when its result arrives
+      // 3) Mark an entry "finished" when its result arrives
       if (rob_fill_val && rob_valid[rob_fill_slot]) begin
         rob_pending[rob_fill_slot] <= 1'b0;
       end
@@ -93,9 +98,37 @@ module parc_CoreReorderBuffer
       if (rob_commit_wen) begin
         rob_valid[rob_head] <= 1'b0;
         rob_head            <= rob_head + 4'd1;
+        rob_count           <= rob_count - 4'd1;  // Decrement ROB count
       end
     end
   end
+
+  `ifndef SYNTHESIS
+  // Debug ROB state
+  always @(posedge clk) begin
+    if (branch_resolve_val) begin
+      $display("ROB Branch Resolution: val=%b, taken=%b, slot=%d, head=%d, tail=%d", 
+              branch_resolve_val, branch_resolve_taken, branch_resolve_slot, rob_head, rob_tail);
+      $display("ROB Spec Bits: %b", rob_spec);
+    end
+  end
+
+  // Debug ROB commit
+  always @(posedge clk) begin
+    if (rob_commit_wen) begin
+      $display("ROB Commit: slot=%d, waddr=%d, head=%d, tail=%d",
+              rob_commit_slot, rob_commit_rf_waddr, rob_head, rob_tail);
+    end
+  end
+
+  // Debug ROB allocation
+  always @(posedge clk) begin
+    if (rob_alloc_req_val && rob_alloc_req_rdy) begin
+      $display("ROB Allocation: slot=%d, spec=%b, head=%d, tail=%d",
+              rob_alloc_resp_slot, rob_alloc_req_spec, rob_head, rob_tail);
+    end
+  end
+  `endif
 
 endmodule
 
