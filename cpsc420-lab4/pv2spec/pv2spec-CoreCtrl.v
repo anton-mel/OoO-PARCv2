@@ -333,6 +333,7 @@ module parc_CoreCtrl
   // Is the current stage valid?
 
   wire inst_val_Dhl = ( !bubble_Dhl && !squash_Dhl );
+  wire inst_val_not_spec_Dhl = inst_val_Dhl && !(inst_val_Ihl && br_sel_Ihl);
 
   // Ship instruction for field parsing to datapath
 
@@ -553,7 +554,7 @@ module parc_CoreCtrl
     .dst_en              (rf_wen_Dhl),
     .latency             (inst_latency_Dhl),
     .func_unit           (inst_func_unit_Dhl), 
-    .inst_val_Dhl        (inst_val_Dhl),
+    .inst_val_Dhl        (inst_val_not_spec_Dhl),
     .non_sb_stall_Dhl    (non_sb_stall_Dhl),
 
     .rob_alloc_slot      (rob_fill_slot_Dhl),
@@ -583,10 +584,10 @@ module parc_CoreCtrl
 
   // Aggregate Stall Signal
 
-  wire stall_spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
+  // wire stall_spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
 
   assign non_sb_stall_Dhl = ( stall_Ihl ||
-                       stall_spec_Dhl ||
+                      //  stall_spec_Dhl ||
                       (inst_val_Dhl && !rob_req_rdy_Dhl));
 
   assign stall_Dhl = non_sb_stall_Dhl || (inst_val_Dhl && stall_sb_Dhl );
@@ -658,9 +659,12 @@ module parc_CoreCtrl
 
   wire inst_val_Ihl = ( !bubble_Ihl && !squash_Ihl );
 
+  wire [1:0] rob_spec_resolve_result_Ihl = {!brj_taken_Xhl, inst_val_Xhl && (br_sel_Xhl != br_none)};
+  wire [3:0] rob_spec_resolve_slot_Ihl = rob_fill_slot_Ihl;
+
   // Dummy squash signal
 
-  wire squash_Ihl = 1'b0;
+  wire squash_Ihl = ( inst_val_Xhl && brj_taken_Xhl );
 
   // Stall Signal
 
@@ -1038,6 +1042,7 @@ module parc_CoreCtrl
   //----------------------------------------------------------------------
 
   wire rob_req_val_Dhl = inst_val_Dhl && !stall_Dhl && rf_wen_Dhl;
+  wire rob_req_spec_Dhl = inst_val_Ihl && br_sel_Ihl;
   wire rob_fill_val = inst_val_Whl && rf_wen_Whl;
 
   wire rob_req_rdy_Dhl;
@@ -1055,7 +1060,12 @@ module parc_CoreCtrl
     .rob_alloc_req_val         (rob_req_val_Dhl),
     .rob_alloc_req_rdy         (rob_req_rdy_Dhl),
     .rob_alloc_req_preg        (rf_waddr_Dhl),
+    .rob_alloc_req_spec        (rob_req_spec_Dhl),
     .rob_alloc_resp_slot       (rob_fill_slot_Dhl),
+
+    .rob_spec_resolve_slot     (rob_spec_resolve_slot_Ihl),
+    .rob_spec_resolve_result   (rob_spec_resolve_result_Ihl),
+
     .rob_fill_val              (rob_fill_wen_Whl),
     .rob_fill_slot             (rob_fill_slot_Whl),
     .rob_commit_slot           (rob_commit_slot_Chl),
