@@ -1,2 +1,7 @@
-./build/*.out
-./tests/build/vmh/*.vcd
+build/*
+!build/
+!build/compile_test.sh
+!build/Makefile
+!build/template.sav
+tests/build/vmh/*.vcd
+ubmark/build/vmh/*.vcd
