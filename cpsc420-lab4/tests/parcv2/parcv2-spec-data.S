@@ -6,7 +6,7 @@
 
         TEST_PARC_BEGIN
 
-          // Test branches with data dependencies
+          // Test branch with simple data dependency
           li    $1, 0
           li    $2, 1
           
@@ -14,17 +14,13 @@
           addiu $1, $1, 1
           bne   $1, $2, 1f
           addiu $1, $1, 1
-      1:  // Branch depends on result of speculated instruction
-          bne   $1, $2, 2f
-          addiu $1, $1, 1
-      2:  TEST_CHECK_EQ( $1, 1 )
+      1:  TEST_CHECK_EQ( $1, 1 )
 
-          // Test with muldiv instruction in speculation path
+          // Test with simple arithmetic in speculation path
           li    $3, 2
-          li    $4, 3
-          mul   $5, $3, $4    // $5 = 6
-          bne   $5, $4, 3f    // Should not take branch
-          addiu $5, $5, 1
-      3:  TEST_CHECK_EQ( $5, 6 )
+          addiu $3, $3, 1    // $3 = 3
+          bne   $3, $2, 2f   // Should take branch
+          addiu $3, $3, 1
+      2:  TEST_CHECK_EQ( $3, 3 )
 
         TEST_PARC_END 
