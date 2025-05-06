@@ -43,5 +43,6 @@ parcv2_srcs += \
   parcv2-spec.S \
   parcv2-spec-data.S \
   parcv2-spec-edge.S \
+  parcv2-spec-nested.S \
 #  parcv2-mfc0.S \
 
