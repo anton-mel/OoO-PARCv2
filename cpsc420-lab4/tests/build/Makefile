@@ -81,7 +81,7 @@ LDFLAGS     :=
 
 # Test build
 
-CC := gcc
+CC := maven-gcc
 TESTBUILD := \
   $(CC) $(CFLAGS) $(LDFLAGS) \
         -T $(scripts_dir)/test.ld -nostartfiles \
@@ -89,7 +89,7 @@ TESTBUILD := \
 
 # Host simulator
 
-RUN           := 
+RUN           := maven-isa-testrun
 RUNFLAGS      := 
 
 # Installation

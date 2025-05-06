@@ -60,6 +60,7 @@ tests = \
   parcv1-jr.vmh \
   parcv2-andi.vmh \
   parcv2-and.vmh \
+  parcv2-byp.vmh \
   parcv2-beq.vmh \
   parcv2-bgez.vmh \
   parcv2-bgtz.vmh \
