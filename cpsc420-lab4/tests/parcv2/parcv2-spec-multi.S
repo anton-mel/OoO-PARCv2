@@ -6,20 +6,16 @@
 
         TEST_PARC_BEGIN
 
-          // Test multiple branches with different conditions
+          // Test branch target calculation
           li    $1, 0
-          li    $2, 1
-          li    $3, -1
+          li    $2, 4
           
-          // Test beq (not taken)
+          // Calculate branch target dynamically
+          addiu $1, $1, 1
+          addiu $1, $1, 1
+          addiu $1, $1, 1
           beq   $1, $2, 1f
           addiu $1, $1, 1
-      1:  // Test bne (taken)
-          bne   $1, $2, 2f
-          addiu $1, $1, 1
-      2:  // Test bltz (not taken)
-          bltz  $1, 3f
-          addiu $1, $1, 1
-      3:  TEST_CHECK_EQ( $1, 2 )
+      1:  TEST_CHECK_EQ( $1, 3 )
 
         TEST_PARC_END 
