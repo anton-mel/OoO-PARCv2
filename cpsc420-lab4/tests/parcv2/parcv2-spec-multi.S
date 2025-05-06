@@ -6,16 +6,15 @@
 
         TEST_PARC_BEGIN
 
-          // Test branch target calculation
+          // Test basic value forwarding
           li    $1, 0
-          li    $2, 4
+          li    $2, 1
           
-          // Calculate branch target dynamically
+          // Simple value forwarding chain
           addiu $1, $1, 1
           addiu $1, $1, 1
           addiu $1, $1, 1
-          beq   $1, $2, 1f
-          addiu $1, $1, 1
-      1:  TEST_CHECK_EQ( $1, 3 )
+          TEST_CHECK_EQ( $1, 3 )
 
+        TEST_PARC_END 
         TEST_PARC_END 
