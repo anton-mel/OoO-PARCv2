@@ -6,16 +6,20 @@
 
         TEST_PARC_BEGIN
 
-          // Test two consecutive branches
+          // Test multiple branches with different conditions
           li    $1, 0
           li    $2, 1
+          li    $3, -1
           
-          // First branch (taken)
-          bne   $1, $2, 1f
+          // Test beq (not taken)
+          beq   $1, $2, 1f
           addiu $1, $1, 1
-      1:  // Second branch (not taken)
-          beq   $1, $2, 2f
+      1:  // Test bne (taken)
+          bne   $1, $2, 2f
           addiu $1, $1, 1
-      2:  TEST_CHECK_EQ( $1, 0 )
+      2:  // Test bltz (not taken)
+          bltz  $1, 3f
+          addiu $1, $1, 1
+      3:  TEST_CHECK_EQ( $1, 2 )
 
         TEST_PARC_END 
