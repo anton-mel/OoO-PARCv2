@@ -60,6 +60,7 @@ tests = \
   parcv1-jr.vmh \
   parcv2-andi.vmh \
   parcv2-and.vmh \
+  parcv2-byp.vmh \
   parcv2-beq.vmh \
   parcv2-bgez.vmh \
   parcv2-bgtz.vmh \
@@ -95,6 +96,9 @@ tests = \
   parcv2-xor.vmh \
   parcv2-ooo.vmh \
   parcv2-spec.vmh \
+  parcv2-spec-data.vmh \
+  parcv2-spec-edge.vmh \
+  parcv2-spec-nested.vmh \
 
 pv2byp_rtl_sim = pv2byp-sim
 pv2byp_rtl_rand_sim = pv2byp-randdelay-sim

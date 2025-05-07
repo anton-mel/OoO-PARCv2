@@ -4,6 +4,7 @@
 
 parcv2_srcs += \
   parcv2-andi.S \
+  parcv2-byp.S \
   parcv2-xori.S \
   parcv2-slti.S \
   parcv2-sltiu.S \
@@ -40,5 +41,8 @@ parcv2_srcs += \
   parcv2-remu.S \
   parcv2-ooo.S \
   parcv2-spec.S \
+  parcv2-spec-data.S \
+  parcv2-spec-edge.S \
+  parcv2-spec-nested.S \
 #  parcv2-mfc0.S \
 
