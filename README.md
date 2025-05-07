@@ -18,3 +18,10 @@ In this lab, we extend the pipelined PARCv2 processor from the previous lab into
 ![Evaluations Against Previous Implementation Designs](static/eval_ssc.png)
 ![Superscalar Single Issue Pipeline & Scoreboarding](static/superscalar2wide1issue.png)
 ![Superscalar Dual Issue Pipeline & Scoreboarding](static/superscalar2wide2issue.png)
+
+### Lab 4: Out of Order Processor & Speculative Execution
+
+In this lab, we implement a ROB for an I2O2 processor to make it an I2OI processor.
+We also modify this processor to allow for speculative processing of the instructions immediately following a branch instruction. The speculative processor uses the ROB which is modified to account for speculatively allocated instructions and a scoreboard which we modified to take speculative instructions in the issue stage only after they have been resolved. The ROB makes the commit stage strictly in order, which ensures that WAW hazards are not an issue for the OoO processor, including when high latency writes occur immediately before a low latency write. The assembly and benchmark tests demonstrate correctness, while our custom tests also show resilience to specific edge cases. Averaging over benchmarks, the OoO processor sees an average of 33.2% speedup over the bypassing processor, but can be slower due to stalling for hazards in the writeback stage. In the two benchmarks with branching, speculative processing gives a 5.5% speedup, but there is a performance hit in including the issue stage since consecutive ALU instructions where the second uses the results of the first require an additional cycle of stalling.
+
+![OOO Processor Pipeline](static/ooo.png)
