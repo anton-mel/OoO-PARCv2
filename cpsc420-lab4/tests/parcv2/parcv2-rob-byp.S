@@ -7,8 +7,11 @@
         TEST_PARC_BEGIN
 
           li    $1, 0
-          bne   $1, 0, 1f
           addiu $1, $1, 1
-      1:  TEST_CHECK_EQ( $1, 1 )
+          nop
+          nop
+          addiu $1, $1, 2
+          TEST_CHECK_EQ( $1, 3 )
+
 
         TEST_PARC_END
