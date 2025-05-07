@@ -23,6 +23,13 @@ module parc_CoreScoreboard
   input  [ 5:0] latency,          // Instruction latency (one-hot)
   input         inst_val_Dhl,     // Instruction valid
   input         non_sb_stall_Dhl, // Decode stall
+  input         spec_Dhl,
+
+  input  [ 4:0] dst_spec,         // Destination register
+  input  [ 2:0] func_unit_spec,   // Functional Unit
+  input  [ 5:0] latency_spec,     // Instruction latency (one-hot)
+  input         spec_accept_Ihl,
+  input  [ 3:0] rob_alloc_slot_spec, // ROB slot allocated to dst_spec reg
 
   input  [ 3:0] rob_alloc_slot,   // ROB slot allocated to dst reg
   input  [ 3:0] rob_commit_slot,  // ROB slot emptied during commit
@@ -54,6 +61,9 @@ module parc_CoreScoreboard
     if( accept ) begin
       reg_rob_slot[dst] <= rob_alloc_slot;
     end
+    if ( spec_accept_Ihl ) begin
+      reg_rob_slot[dst_spec] <= rob_alloc_slot_spec;
+    end
   end
 
   assign src0_byp_rob_slot = reg_rob_slot[src0];
@@ -64,8 +74,8 @@ module parc_CoreScoreboard
   wire src0_can_byp = pending[src0] && (reg_latency[src0] < 6'b000100);
   wire src1_can_byp = pending[src1] && (reg_latency[src1] < 6'b000100);
 
-  wire src0_ok = !pending[src0] || src0_can_byp || !src0_en;
-  wire src1_ok = !pending[src1] || src1_can_byp || !src1_en;
+  wire src0_ok = (!pending[src0] || src0_can_byp || !src0_en) && !(src0 == dst_spec && spec_accept_Ihl);
+  wire src1_ok = (!pending[src1] || src1_can_byp || !src1_en) && !(src1 == dst_spec && spec_accept_Ihl);
 
   // reg [2:0] src0_byp_mux_sel; (declared as output)
   // reg [2:0] src1_byp_mux_sel; (declared as output)
@@ -97,14 +107,14 @@ module parc_CoreScoreboard
   // Check for hazards
 
   wire stall_wb_hazard =
-    ((wb_alu_latency >> 1) & latency) > 6'b0 ? 1'b1 :
-    ((wb_mem_latency >> 1) & latency) > 6'b0 ? 1'b1 :
-    ((wb_mul_latency >> 1) & latency) > 6'b0 ? 1'b1 : 1'b0;
+    (((wb_alu_latency >> 1) | (spec_accept_Ihl ? latency_spec : 6'b0)) & latency) > 6'b0 ? 1'b1 :
+    (((wb_mem_latency >> 1) | (spec_accept_Ihl ? latency_spec : 6'b0)) & latency) > 6'b0 ? 1'b1 :
+    (((wb_mul_latency >> 1) | (spec_accept_Ihl ? latency_spec : 6'b0)) & latency) > 6'b0 ? 1'b1 : 1'b0;
 
   wire accept =
-    src0_ok && src1_ok && !stall_wb_hazard && inst_val_Dhl && !non_sb_stall_Dhl;
+    src0_ok && src1_ok && !stall_wb_hazard && inst_val_Dhl && !non_sb_stall_Dhl && !spec_Dhl;
 
-  assign stall_hazard = ~accept;
+  assign stall_hazard = ~(src0_ok && src1_ok && !stall_wb_hazard && inst_val_Dhl && !non_sb_stall_Dhl);
   
   // Advance one cycle
   
@@ -121,6 +131,10 @@ module parc_CoreScoreboard
         reg_latency[r]     <= latency;
         pending[r]         <= 1'b1;
         functional_unit[r] <= func_unit;
+      end else if (spec_accept_Ihl && (r == dst_spec)) begin
+        reg_latency[r]     <= latency_spec;
+        pending[r]         <= 1'b1;
+        functional_unit[r] <= func_unit_spec;
       end else begin
         reg_latency[r]     <= 
           (reg_latency[r] & stalls) | 
@@ -137,15 +151,12 @@ module parc_CoreScoreboard
   always @(posedge clk) begin
     if (reset) begin
       wb_alu_latency <= 6'b0;
-    end else if (accept && (func_unit == 2'd1)) begin
-      wb_alu_latency <= 
-        (wb_alu_latency & stalls) |
-        ((wb_alu_latency & ~stalls) >> 1) |
-        latency;
     end else begin
       wb_alu_latency <= 
         (wb_alu_latency & stalls) |
-        ((wb_alu_latency & ~stalls) >> 1);
+        ((wb_alu_latency & ~stalls) >> 1) |
+        ((accept && (func_unit == 2'd1)) ? latency : 6'b0) |
+        ((spec_accept_Ihl && (func_unit_spec == 2'd1)) ? latency_spec : 6'b0);
     end
   end
 
@@ -154,15 +165,12 @@ module parc_CoreScoreboard
   always @(posedge clk) begin
     if (reset) begin
       wb_mem_latency <= 6'b0;
-    end else if (accept && (func_unit == 2'd2)) begin
-      wb_mem_latency <= 
-        (wb_mem_latency & stalls) |
-        ((wb_mem_latency & ~stalls) >> 1) |
-        latency;
     end else begin
       wb_mem_latency <= 
         (wb_mem_latency & stalls) |
-        ((wb_mem_latency & ~stalls) >> 1);
+        ((wb_mem_latency & ~stalls) >> 1) |
+        ((accept && (func_unit == 2'd2)) ? latency : 6'b0) |
+        ((spec_accept_Ihl && (func_unit_spec == 2'd2)) ? latency_spec : 6'b0);
     end
   end
 
@@ -171,15 +179,12 @@ module parc_CoreScoreboard
   always @(posedge clk) begin
     if (reset) begin
       wb_mul_latency <= 6'b0;
-    end else if (accept && (func_unit == 2'd3)) begin
-      wb_mul_latency <= 
-        (wb_mul_latency & stalls) |
-        ((wb_mul_latency & ~stalls) >> 1) |
-        latency;
     end else begin
       wb_mul_latency <= 
         (wb_mul_latency & stalls) |
-        ((wb_mul_latency & ~stalls) >> 1);
+        ((wb_mul_latency & ~stalls) >> 1) |
+        ((accept && (func_unit == 2'd3)) ? latency : 6'b0) |
+        ((spec_accept_Ihl && (func_unit_spec == 2'd3)) ? latency_spec : 6'b0);
     end
   end
 

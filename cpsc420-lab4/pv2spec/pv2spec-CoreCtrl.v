@@ -535,12 +535,20 @@ module parc_CoreCtrl
 
   wire       stall_sb_Dhl;
   wire       non_sb_stall_Dhl;
+  wire       spec_Dhl;
   // wire [1:0] wb_mux_sel_Whl; (declared as output)
 
   wire [3:0] rob_fill_slot_Dhl;
 
   // wire [3:0] op0_byp_rob_slot_Dhl; (declared as output)
   // wire [3:0] op1_byp_rob_slot_Dhl; (declared as output)
+
+
+  reg  [4:0] rf_waddr_Ihl;
+  reg  [3:0] rob_fill_slot_Ihl;
+  reg  [2:0] inst_func_unit_Ihl;
+  reg  [5:0] inst_latency_Ihl;
+  wire       spec_accept_Ihl;
 
   parc_CoreScoreboard scoreboard
   (
@@ -554,8 +562,15 @@ module parc_CoreCtrl
     .dst_en              (rf_wen_Dhl),
     .latency             (inst_latency_Dhl),
     .func_unit           (inst_func_unit_Dhl), 
-    .inst_val_Dhl        (inst_val_not_spec_Dhl),
+    .inst_val_Dhl        (inst_val_Dhl),
     .non_sb_stall_Dhl    (non_sb_stall_Dhl),
+    .spec_Dhl            (spec_Dhl),
+
+    .dst_spec            (rf_waddr_Ihl),
+    .func_unit_spec      (inst_func_unit_Ihl),
+    .latency_spec        (inst_latency_Ihl),
+    .spec_accept_Ihl     (spec_accept_Ihl && rf_wen_Ihl),
+    .rob_alloc_slot_spec (rob_fill_slot_Ihl),
 
     .rob_alloc_slot      (rob_fill_slot_Dhl),
     .rob_commit_slot     (rob_commit_slot_Chl),
@@ -584,7 +599,7 @@ module parc_CoreCtrl
 
   // Aggregate Stall Signal
 
-  // wire stall_spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
+  assign spec_Dhl = inst_val_Ihl && (br_sel_Ihl != br_none);
 
   assign non_sb_stall_Dhl = ( stall_Ihl ||
                       //  stall_spec_Dhl ||
@@ -617,10 +632,12 @@ module parc_CoreCtrl
   reg  [2:0] dmemresp_mux_sel_Ihl;
   reg        wb_mux_sel_Ihl;
   reg        rf_wen_Ihl;
-  reg  [4:0] rf_waddr_Ihl;
-  reg  [3:0] rob_fill_slot_Ihl;
+  // reg  [4:0] rf_waddr_Ihl;
+  // reg  [3:0] rob_fill_slot_Ihl;
   reg        cp0_wen_Ihl;
   reg  [4:0] cp0_addr_Ihl;
+  // reg  [2:0] inst_func_unit_Ihl;
+  // reg  [5:0] inst_latency_Ihl;
 
   reg        bubble_Ihl;
 
@@ -649,6 +666,8 @@ module parc_CoreCtrl
       rob_fill_slot_Ihl    <= rob_fill_slot_Dhl;
       cp0_wen_Ihl          <= cp0_wen_Dhl;
       cp0_addr_Ihl         <= cp0_addr_Dhl;
+      inst_func_unit_Ihl   <= inst_func_unit_Dhl;
+      inst_latency_Ihl     <= (inst_latency_Dhl >> 1);
 
       bubble_Ihl           <= bubble_next_Dhl;
     end
@@ -676,6 +695,8 @@ module parc_CoreCtrl
   wire bubble_next_Ihl = ( !bubble_sel_Ihl ) ? bubble_Ihl
                        : ( bubble_sel_Ihl )  ? 1'b1
                        :                       1'bx;
+
+  assign spec_accept_Ihl = inst_val_Ihl && !stall_Ihl && rf_wen_Ihl && inst_val_Xhl && (br_sel_Xhl != br_none) && !brj_taken_Xhl;
 
   //----------------------------------------------------------------------
   // X <- I
