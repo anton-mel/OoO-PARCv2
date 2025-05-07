@@ -96,6 +96,8 @@ tests = \
   parcv2-xor.vmh \
   parcv2-ooo.vmh \
   parcv2-spec.vmh \
+  parcv2-waw.vmh \
+  parcv2-rob-byp.vmh \
   parcv2-spec-data.vmh \
   parcv2-spec-edge.vmh \
   parcv2-spec-nested.vmh \
