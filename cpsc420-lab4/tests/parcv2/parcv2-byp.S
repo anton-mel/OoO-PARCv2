@@ -9,8 +9,8 @@
           li    $4, 0
           la    $2, tdata_0
           lh    $3, 0($2)
+          addu  $4, $4, 1
           lh    $3, 0($2)
-          addu $4, $4, 1
           addu $4, $4, 1
           addu $4, $4, 1
           addu $4, $4, 1
