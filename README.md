@@ -1,4 +1,6 @@
-# Computer Architecture Projects
+# Customized PARCv2
+
+This is part of the EENG 520 course at Yale by Prof. Abhishek Bhattacharjee
 
 ### Lab1: Iterative Integer Multiply/Divide Unit
 
