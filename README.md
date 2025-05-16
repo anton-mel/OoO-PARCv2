@@ -1,6 +1,6 @@
 # Customized PARCv2
 
-This is part of the EENG 520 course at Yale by Prof. Abhishek Bhattacharjee
+This repository is part of the EENG 520 labs at Yale taught by Prof. Abhishek Bhattacharjee.
 
 ### Lab1: Iterative Integer Multiply/Divide Unit
 
